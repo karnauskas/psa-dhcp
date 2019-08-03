@@ -41,5 +41,7 @@ func (h IPv4) Assemble() []byte {
 		}
 	}
 	copy(b[20:], h.Data)
+
+	setV4Checksum(b)
 	return b
 }
