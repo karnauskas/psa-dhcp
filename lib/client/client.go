@@ -2,7 +2,9 @@ package client
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"math/rand"
 	"net"
 	"time"
 
@@ -14,48 +16,68 @@ import (
 
 func Run(ctx context.Context, l *log.Logger, iface *net.Interface) error {
 	l.Printf("Unconfiguring interface '%s'\n", iface.Name)
-	/*	if err := reInitIface(iface); err != nil {
-			return err
-		}
-	*/
+	if err := reInitIface(iface); err != nil {
+		return err
+	}
+
+	go catchDiscover(iface)
+	return sendDiscover(iface)
+}
+
+func catchDiscover(iface *net.Interface) error {
+	s, err := rsocks.GetRawRecvSock(iface)
+	if err != nil {
+		return err
+	}
+	buff := make([]byte, 1024)
+	for {
+		nr, err := s.Read(buff)
+		fmt.Printf(">> %d, %v, %v\n", nr, err, buff)
+	}
+	s.Close()
+	return nil
+}
+
+func sendDiscover(iface *net.Interface) error {
 	s, err := rsocks.GetRawSendSock(iface)
 	if err != nil {
 		return err
 	}
+	fmt.Printf(">> %T\n", iface.HardwareAddr)
 
-	zz := dhcpmsg.Message{
-		Op:        1,
-		Htype:     1,
-		Hlen:      6,
-		Hops:      0,
-		Xid:       0xb4db4b3,
-		Secs:      0,
-		Flags:     dhcpmsg.FlagBroadcast,
-		ClientMAC: [6]byte{0xf4, 0x8c, 0x50, 0xe8, 0xdf, 0x32},
-		Options: []dhcpmsg.DHCPOpt{
-			dhcpmsg.OptDiscover(),
-			dhcpmsg.OptHostname("abyssloch"),
-		},
-	}.Assemble()
-	uu := layer.UDP{
-		SrcPort: 68,
-		DstPort: 67,
-		Data:    zz,
-	}.Assemble()
-	xx := layer.IPv4{
-		Identification: 26174,
-		Destination:    net.IPv4(255, 255, 255, 255),
-		Source:         net.IPv4(0, 0, 0, 0),
-		TTL:            250,
-		Protocol:       17,
-		Data:           uu,
-	}.Assemble()
+	var mac [6]byte
+	copy(mac[:], iface.HardwareAddr[0:len(mac)])
 	for {
+		zz := dhcpmsg.Message{
+			Op:        1,
+			Htype:     1,
+			Hlen:      uint8(len(mac)),
+			Hops:      0,
+			Xid:       rand.Uint32(),
+			Secs:      0,
+			Flags:     dhcpmsg.FlagBroadcast,
+			ClientMAC: mac,
+			Options: []dhcpmsg.DHCPOpt{
+				dhcpmsg.OptDiscover(),
+				dhcpmsg.OptHostname("abyssloch"),
+			},
+		}.Assemble()
+		xx := layer.IPv4{
+			Identification: uint16(rand.Uint32()),
+			Destination:    net.IPv4(255, 255, 255, 255),
+			Source:         net.IPv4(0, 0, 0, 0),
+			TTL:            250,
+			Protocol:       layer.ProtoUDP,
+			Data: layer.UDP{
+				SrcPort: 68,
+				DstPort: 67,
+				Data:    zz}.Assemble(),
+		}.Assemble()
 		s.Write(xx)
 		//s.SendDiscover()
 		time.Sleep(time.Second * 5)
 	}
-
+	s.Close()
 	return nil
 }
 

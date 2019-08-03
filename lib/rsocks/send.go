@@ -35,6 +35,6 @@ func (rs *rssock) Write(p []byte) (n int, err error) {
 }
 
 // Close closes the socket.
-func (rs *rssock) Close() {
-	syscall.Close(rs.fd)
+func (rs *rssock) Close() error {
+	return syscall.Close(rs.fd)
 }
