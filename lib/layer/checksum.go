@@ -27,9 +27,13 @@ func setV4Checksum(b []byte) error {
 // Calculates an IPv4 header checksum.
 // This function assumes that the checksum bits are zeroed out.
 func ipv4csum(b []byte, acc uint32) uint16 {
-	for i := 0; i < len(b); i += 2 {
+	length := len(b) - 1
+	for i := 0; i < length; i += 2 {
 		acc += uint32(b[i]) << 8
 		acc += uint32(b[i+1])
+	}
+	if len(b)%2 == 1 {
+		acc += uint32(b[length]) << 8
 	}
 	for acc > 0xFFFF {
 		acc = (acc >> 16) + uint32(uint16(acc))
