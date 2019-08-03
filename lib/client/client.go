@@ -6,6 +6,7 @@ import (
 	"net"
 	"time"
 
+	"gitlab.com/adrian_blx/psa-dhcp/lib/layer"
 	"gitlab.com/adrian_blx/psa-dhcp/lib/libif"
 	"gitlab.com/adrian_blx/psa-dhcp/lib/rsocks"
 )
@@ -20,8 +21,22 @@ func Run(ctx context.Context, l *log.Logger, iface *net.Interface) error {
 	if err != nil {
 		return err
 	}
+
+	zz := make([]byte, 272)
+	uu := layer.UDP{
+		SrcPort: 68,
+		DstPort: 67,
+		Data:    zz,
+	}
+	xx := layer.IPv4{
+		Identification: 43062,
+		Destination:    net.IPv4(255, 255, 255, 255),
+		TTL:            250,
+		Protocol:       17,
+		Data:           uu.Assemble(),
+	}
 	for {
-		s.Write([]byte{1, 2, 3})
+		s.Write(xx.Assemble())
 		//s.SendDiscover()
 		time.Sleep(time.Second * 5)
 	}
