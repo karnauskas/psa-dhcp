@@ -4,6 +4,10 @@ import (
 	"net"
 )
 
+const (
+	DHCPCookie = 0x63825363
+)
+
 type Message struct {
 	Op             uint8
 	Htype          uint8
@@ -41,14 +45,14 @@ func (msg Message) Assemble() []byte {
 	copy(buf[34:], msg.MACPadding[:])
 	copy(buf[44:], msg.ServerHostName[:])
 	copy(buf[108:], msg.BootFilename[:])
-	setU32Int(buf[236:], 0x63825363) // DHCP
+	setU32Int(buf[236:], msg.Cookie)
 
 	for _, opt := range msg.Options {
-		b := make([]byte, 2+len(opt.data))
-		b[0] = opt.option
+		b := make([]byte, 2+len(opt.Data))
+		b[0] = opt.Option
 		// FIXME: Check overflow.
-		b[1] = uint8(len(opt.data))
-		copy(b[2:], opt.data[:])
+		b[1] = uint8(len(opt.Data))
+		copy(b[2:], opt.Data[:])
 		buf = append(buf, b...)
 	}
 	if len(msg.Options) > 0 {
@@ -80,14 +84,14 @@ func setIPv4(b []byte, ip net.IP) {
 }
 
 type DHCPOpt struct {
-	option uint8
-	data   []byte
+	Option uint8
+	Data   []byte
 }
 
 func OptDiscover() DHCPOpt {
-	return DHCPOpt{option: 53, data: []byte{1}}
+	return DHCPOpt{Option: 53, Data: []byte{1}}
 }
 
 func OptHostname(n string) DHCPOpt {
-	return DHCPOpt{option: 12, data: []byte(n)}
+	return DHCPOpt{Option: 12, Data: []byte(n)}
 }

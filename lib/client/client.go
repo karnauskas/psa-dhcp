@@ -68,6 +68,7 @@ func sendDiscover(iface *net.Interface) error {
 			Secs:      0,
 			Flags:     dhcpmsg.FlagBroadcast,
 			ClientMAC: mac,
+			Cookie:    dhcpmsg.DHCPCookie,
 			Options: []dhcpmsg.DHCPOpt{
 				dhcpmsg.OptDiscover(),
 				dhcpmsg.OptHostname("abyssloch"),
