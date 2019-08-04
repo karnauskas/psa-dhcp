@@ -58,7 +58,7 @@ func DecodeIPv4(b []byte) (*IPv4, error) {
 
 	version := b[0] >> 4
 	ihl := int((b[0] & 0xF) << 2)
-	if version != 4 || plen < ihl {
+	if version != 4 || plen < ihl || ihl < ipv4Hlen {
 		return nil, fmt.Errorf("invalid packet")
 	}
 
