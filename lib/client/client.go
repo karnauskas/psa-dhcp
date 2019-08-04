@@ -16,10 +16,10 @@ import (
 
 func Run(ctx context.Context, l *log.Logger, iface *net.Interface) error {
 	l.Printf("Unconfiguring interface '%s'\n", iface.Name)
-	if err := reInitIface(iface); err != nil {
-		return err
-	}
-
+	/*	if err := reInitIface(iface); err != nil {
+			return err
+		}
+	*/
 	go catchDiscover(iface)
 	return sendDiscover(iface)
 }
@@ -32,7 +32,18 @@ func catchDiscover(iface *net.Interface) error {
 	buff := make([]byte, 1024)
 	for {
 		nr, err := s.Read(buff)
-		fmt.Printf(">> %d, %v, %v\n", nr, err, buff)
+		v4, err := layer.DecodeIPv4(buff[0:nr])
+		if err != nil {
+			fmt.Printf("V4 err: %v\n", err)
+			continue
+		}
+		if v4.Protocol == 0x11 {
+			udp, err := layer.DecodeUDP(v4.Data)
+			_ = err
+			fmt.Printf("RAW = %+v\n", buff[0:nr])
+			fmt.Printf("V4 = %+v\n", v4)
+			fmt.Printf("UDP= %+v\n\n", udp)
+		}
 	}
 	s.Close()
 	return nil
