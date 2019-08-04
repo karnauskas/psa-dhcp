@@ -4,10 +4,6 @@ import (
 	"net"
 )
 
-const (
-	DHCPCookie = 0x63825363
-)
-
 type Message struct {
 	Op             uint8
 	Htype          uint8
@@ -60,10 +56,6 @@ func (msg Message) Assemble() []byte {
 	}
 	return buf
 }
-
-const (
-	FlagBroadcast = 1 << 15
-)
 
 func setU16Int(b []byte, val uint16) {
 	b[0] = byte(val >> 8)
