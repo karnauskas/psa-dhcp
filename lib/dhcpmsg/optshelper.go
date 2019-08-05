@@ -2,7 +2,6 @@ package dhcpmsg
 
 import (
 	"encoding/binary"
-	"fmt"
 	"net"
 	"time"
 )

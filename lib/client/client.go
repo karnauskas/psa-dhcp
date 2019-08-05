@@ -58,7 +58,21 @@ xloop:
 
 	fmt.Printf("Received reply: %+v\n", reply)
 	if reply != nil {
-		fmt.Printf("Decoded opts = %+v\n", dhcpmsg.DecodeOptions(reply.Options))
+		opts := dhcpmsg.DecodeOptions(reply.Options)
+		if opts.SubnetMask != nil {
+			fmt.Printf("SUBNET MASK = %s\n", *opts.SubnetMask)
+		}
+		if opts.DomainName != nil {
+			fmt.Printf("DOMAIN NAME = %s\n", *opts.DomainName)
+		}
+		if opts.Routers != nil {
+			fmt.Printf("ROUTERS = %s\n", *opts.Routers)
+		}
+		if opts.MessageType != nil {
+			fmt.Printf("MSG TYPE = %d\n", *opts.MessageType)
+		}
+		fmt.Printf("Offered IP = %s\n", reply.YourIP)
+		fmt.Printf("GIPADDR    = %s\n", reply.NextIP)
 	}
 	return nil
 }
