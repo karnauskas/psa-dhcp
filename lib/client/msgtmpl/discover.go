@@ -1,7 +1,6 @@
 package msgtmpl
 
 import (
-	"fmt"
 	"math/rand"
 	"net"
 	"time"
@@ -36,6 +35,5 @@ func (rx tmpl) Discover() []byte {
 			}.Assemble(),
 		}.Assemble(),
 	}.Assemble()
-	fmt.Printf(">> SEC COUNT: %d\n", uint16(time.Now().Sub(rx.start).Seconds()))
 	return pl
 }
