@@ -29,8 +29,8 @@ func (rx tmpl) Discover() []byte {
 				ClientMAC: rx.hwaddr,
 				Cookie:    dhcpmsg.DHCPCookie,
 				Options: []dhcpmsg.DHCPOpt{
-					dhcpmsg.OptDiscover(),
-					dhcpmsg.OptHostname(rx.hostname),
+					dhcpmsg.OptionDiscover(),
+					dhcpmsg.OptionHostname(rx.hostname),
 				},
 			}.Assemble(),
 		}.Assemble(),

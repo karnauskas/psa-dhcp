@@ -80,10 +80,10 @@ type DHCPOpt struct {
 	Data   []byte
 }
 
-func OptDiscover() DHCPOpt {
+func OptionDiscover() DHCPOpt {
 	return DHCPOpt{Option: 53, Data: []byte{1}}
 }
 
-func OptHostname(n string) DHCPOpt {
+func OptionHostname(n string) DHCPOpt {
 	return DHCPOpt{Option: 12, Data: []byte(n)}
 }

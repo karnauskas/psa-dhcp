@@ -58,9 +58,7 @@ xloop:
 
 	fmt.Printf("Received reply: %+v\n", reply)
 	if reply != nil {
-		for _, o := range reply.Options {
-			fmt.Printf("opt=%d => %+v ; %s\n", o.Option, o.Data, string(o.Data))
-		}
+		fmt.Printf("Decoded opts = %+v\n", dhcpmsg.DecodeOptions(reply.Options))
 	}
 	return nil
 }
