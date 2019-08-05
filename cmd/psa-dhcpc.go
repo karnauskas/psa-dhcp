@@ -24,7 +24,7 @@ func main() {
 
 	iface, err := net.InterfaceByName(*ifname)
 	if err != nil {
-		l.Fatalf("failed to discover interface %s: %v\n", *iface, err)
+		l.Fatalf("failed to discover interface %s: %v\n", *ifname, err)
 	}
 
 	err = client.Run(ctx, l, iface)

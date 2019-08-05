@@ -25,7 +25,7 @@ func (rx tmpl) Discover() []byte {
 				Hlen:      uint8(len(rx.hwaddr)),
 				Xid:       rx.xid,
 				Secs:      uint16(time.Now().Sub(rx.start).Seconds()),
-				Flags:     dhcpmsg.FlagBroadcast,
+				Flags:     dhcpmsg.FlagBroadcast, // We always send to 255.255.255.255.
 				ClientMAC: rx.hwaddr,
 				Cookie:    dhcpmsg.DHCPCookie,
 				Options: []dhcpmsg.DHCPOpt{
