@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math/rand"
 	"net"
 	"time"
 
@@ -20,48 +21,102 @@ func Run(ctx context.Context, l *log.Logger, iface *net.Interface) error {
 			return err
 		}
 	*/
-	go catchDiscover(iface)
-	return sendDiscover(iface)
-}
 
-func catchDiscover(iface *net.Interface) error {
-	s, err := rsocks.GetRawRecvSock(iface)
-	if err != nil {
-		return err
+	dctx, dcancel := context.WithTimeout(ctx, time.Second*15)
+	defer dcancel()
+
+	xid := rand.Uint32()
+	tmpl := msgtmpl.New(iface, xid)
+	sender := func() []byte {
+		return tmpl.Discover()
 	}
-	buff := make([]byte, 1024)
+
+	c := make(chan *dhcpmsg.Message)
+	go sendDiscover(dctx, iface, sender)
+	go catchDiscover(dctx, iface, xid, c)
+
+	// Message will be empty if we never got something or nil
+	// when catcher exited.
+	msg := &dhcpmsg.Message{}
+xloop:
 	for {
-		nr, err := s.Read(buff)
-		v4, err := layer.DecodeIPv4(buff[0:nr])
-		if err != nil {
-			fmt.Printf("V4 err: %v\n", err)
-			continue
-		}
-		if v4.Protocol == 0x11 {
-			if udp, err := layer.DecodeUDP(v4.Data); err == nil {
-				msg, err := dhcpmsg.Decode(udp.Data)
-				fmt.Printf("%v -> %+v\n", err, msg)
-			}
+		select {
+		case <-dctx.Done():
+			break xloop
+		case msg = <-c:
+			dcancel()
+			break xloop
 		}
 	}
-	s.Close()
+
+	reply := msg
+	// receiving 'nil' indicates that the catcher was shutdown.
+	for msg != nil {
+		msg = <-c
+	}
+	close(c)
+
+	fmt.Printf("Received reply: %+v\n", reply)
+	if reply != nil {
+		for _, o := range reply.Options {
+			fmt.Printf("opt=%d => %+v ; %s\n", o.Option, o.Data, string(o.Data))
+		}
+	}
 	return nil
 }
 
-func sendDiscover(iface *net.Interface) error {
+func catchDiscover(ctx context.Context, iface *net.Interface, xid uint32, c chan *dhcpmsg.Message) {
+	s, err := rsocks.GetRawRecvSock(iface)
+	if err != nil {
+		c <- nil
+		return
+	}
+	defer s.Close()
+
+	go func() {
+		<-ctx.Done()
+		s.Close()
+	}()
+
+	buff := make([]byte, 4096)
+	for {
+		nr, err := s.Read(buff)
+		if err != nil {
+			c <- nil
+			return
+		}
+		v4, err := layer.DecodeIPv4(buff[0:nr])
+		if err != nil {
+			continue
+		}
+		if v4.Protocol == 0x11 {
+			if udp, err := layer.DecodeUDP(v4.Data); err == nil && udp.DstPort == 68 {
+				if msg, err := dhcpmsg.Decode(udp.Data); err == nil && msg.Xid == xid {
+					c <- msg
+				}
+			}
+		}
+	}
+}
+
+func sendDiscover(ctx context.Context, iface *net.Interface, sender func() []byte) error {
 	s, err := rsocks.GetRawSendSock(iface)
 	if err != nil {
 		return err
 	}
+	defer s.Close()
 
-	tmpl := msgtmpl.New(iface)
 	for {
-		s.Write(tmpl.Discover())
-		//s.SendDiscover()
-		time.Sleep(time.Second * 5)
+		if _, err := s.Write(sender()); err != nil {
+			return err
+		}
+		select {
+		case <-time.After(time.Second * 5):
+			continue
+		case <-ctx.Done():
+			return nil
+		}
 	}
-	s.Close()
-	return nil
 }
 
 func reInitIface(iface *net.Interface) error {
