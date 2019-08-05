@@ -1,7 +1,6 @@
 package msgtmpl
 
 import (
-	"math/rand"
 	"net"
 	"os"
 	"time"
@@ -14,11 +13,11 @@ type tmpl struct {
 	hwaddr   [6]byte
 }
 
-func New(iface *net.Interface) tmpl {
+func New(iface *net.Interface, xid uint32) tmpl {
 	t := tmpl{
 		start:    time.Now(),
-		xid:      rand.Uint32(),
 		hostname: "unknown",
+		xid:      xid,
 	}
 	if hn, err := os.Hostname(); err == nil {
 		t.hostname = hn
