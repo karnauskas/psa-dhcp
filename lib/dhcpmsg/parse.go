@@ -38,7 +38,10 @@ func Decode(b []byte) (*Message, error) {
 	c := dhcpMinLen
 	for c < plen {
 		opt := b[c]
-		if c++; !(c < plen) || opt == 0xff {
+		if c++; opt == 0x00 {
+			continue
+		}
+		if !(c < plen) || opt == 0xff {
 			break
 		}
 		olen := int(b[c])
