@@ -54,7 +54,7 @@ func TestDecodeMessage(t *testing.T) {
 				BootFilename:   [128]byte{'b', 'o', 'o', 't', '.', 'b', 'i', 'n'},
 				Cookie:         0x63825363,
 				Options: []DHCPOpt{
-					OptionDiscover(),
+					OptionType(MsgTypeDiscover),
 					OptionHostname("xhostname"),
 				},
 			},

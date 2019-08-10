@@ -27,7 +27,8 @@ func main() {
 		l.Fatalf("failed to discover interface %s: %v\n", *ifname, err)
 	}
 
-	err = client.Run(ctx, l, iface)
+	c := client.New(ctx, l, iface)
+	err = c.Run()
 	if err != nil {
 		l.Fatalf("error: %v\n", err)
 	}

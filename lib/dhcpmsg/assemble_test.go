@@ -49,7 +49,7 @@ func TestAssemble(t *testing.T) {
 				BootFilename:   [128]byte{'b', 'o', 'o', 't', '.', 'b', 'i', 'n'},
 				Cookie:         DHCPCookie,
 				Options: []DHCPOpt{
-					OptionDiscover(),
+					OptionType(MsgTypeDiscover),
 					OptionHostname("xhostname"),
 				},
 			},

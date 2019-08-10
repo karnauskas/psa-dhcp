@@ -3,14 +3,27 @@ package msgtmpl
 import (
 	"math/rand"
 	"net"
-	"time"
 
 	"gitlab.com/adrian_blx/psa-dhcp/lib/dhcpmsg"
 	"gitlab.com/adrian_blx/psa-dhcp/lib/layer"
 )
 
-func (rx *tmpl) Discover() []byte {
-	rx.lastSecs = uint16(time.Now().Sub(rx.start).Seconds())
+func (rx *tmpl) RequestSelecting(requestedIP, serverIdentifier net.IP) []byte {
+	return rx.request(&requestedIP, &serverIdentifier)
+}
+
+func (rx *tmpl) request(requestedIP, serverIdentifier *net.IP) []byte {
+	msgopts := []dhcpmsg.DHCPOpt{
+		dhcpmsg.OptionType(dhcpmsg.MsgTypeRequest),
+		dhcpmsg.OptionHostname(rx.hostname),
+	}
+	if requestedIP != nil {
+		msgopts = append(msgopts, dhcpmsg.OptionRequestedIP(*requestedIP))
+	}
+	if serverIdentifier != nil {
+		msgopts = append(msgopts, dhcpmsg.OptionServerIdentifier(*serverIdentifier))
+	}
+
 	pl := layer.IPv4{
 		Identification: uint16(rand.Uint32()),
 		Destination:    net.IPv4(255, 255, 255, 255),
@@ -29,10 +42,7 @@ func (rx *tmpl) Discover() []byte {
 				Flags:     dhcpmsg.FlagBroadcast, // We always send to 255.255.255.255.
 				ClientMAC: rx.hwaddr,
 				Cookie:    dhcpmsg.DHCPCookie,
-				Options: []dhcpmsg.DHCPOpt{
-					dhcpmsg.OptionType(dhcpmsg.MsgTypeDiscover),
-					dhcpmsg.OptionHostname(rx.hostname),
-				},
+				Options:   msgopts,
 			}.Assemble(),
 		}.Assemble(),
 	}.Assemble()

@@ -80,10 +80,26 @@ type DHCPOpt struct {
 	Data   []byte
 }
 
-func OptionDiscover() DHCPOpt {
-	return DHCPOpt{Option: 53, Data: []byte{1}}
+func OptionType(t uint8) DHCPOpt {
+	return DHCPOpt{Option: OptMessageType, Data: []byte{t}}
 }
 
 func OptionHostname(n string) DHCPOpt {
-	return DHCPOpt{Option: 12, Data: []byte(n)}
+	return DHCPOpt{Option: OptHostname, Data: []byte(n)}
+}
+
+func OptionServerIdentifier(ip net.IP) DHCPOpt {
+	return optIP(OptServerIdentifier, ip)
+}
+
+func OptionRequestedIP(ip net.IP) DHCPOpt {
+	return optIP(OptRequestedIP, ip)
+}
+
+func optIP(ot uint8, ip net.IP) DHCPOpt {
+	b := make([]byte, 4)
+	if x := ip.To4(); x != nil {
+		copy(b[0:4], x[0:4])
+	}
+	return DHCPOpt{Option: ot, Data: b}
 }

@@ -19,12 +19,21 @@ const (
 )
 
 const (
+	MsgTypeDiscover = 1
+	MsgTypeOffer    = 2
+	MsgTypeRequest  = 3
+	MsgTypeAck      = 5
+)
+
+const (
 	OptPadding            = 0
 	OptSubnetMask         = 1
 	OptRouter             = 3
 	OptDNS                = 6
+	OptHostname           = 12
 	OptDomainName         = 15
 	OptBroadcastAddress   = 28
+	OptRequestedIP        = 50
 	OptIPAddressLeaseTime = 51
 	OptMessageType        = 53
 	OptServerIdentifier   = 54

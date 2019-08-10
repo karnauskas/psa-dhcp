@@ -15,25 +15,72 @@ import (
 	"gitlab.com/adrian_blx/psa-dhcp/lib/rsocks"
 )
 
-func Run(ctx context.Context, l *log.Logger, iface *net.Interface) error {
-	l.Printf("Unconfiguring interface '%s'\n", iface.Name)
-	/*	if err := reInitIface(iface); err != nil {
-			return err
-		}
-	*/
+const (
+	stateInitIface = iota
+	stateInit
+	stateSelecting
+	stateIfconfig
+)
 
-	dctx, dcancel := context.WithTimeout(ctx, time.Second*15)
+type dclient struct {
+	ctx      context.Context
+	l        *log.Logger
+	iface    *net.Interface
+	state    int
+	lastMsg  dhcpmsg.Message
+	lastOpts dhcpmsg.DecodedOptions
+}
+
+type vrfyFunc func(dhcpmsg.Message, dhcpmsg.DecodedOptions) bool
+type senderFunc func() []byte
+
+func New(ctx context.Context, l *log.Logger, iface *net.Interface) *dclient {
+	return &dclient{ctx: ctx, l: l, iface: iface, state: stateInitIface}
+}
+
+func (dx *dclient) Run() error {
+	var pass bool
+	for {
+		xid := rand.Uint32()
+
+		switch dx.state {
+		case stateInitIface:
+			dx.l.Printf("Downing iface\n")
+			reInitIface(dx.iface)
+			dx.state = stateInit
+		case stateInit:
+			tmpl := msgtmpl.New(dx.iface, xid)
+			dx.lastMsg, dx.lastOpts, pass = dx.advanceState(verifyDiscover(xid), func() []byte { return tmpl.Discover() })
+			if pass {
+				dx.state = stateSelecting
+			}
+		case stateSelecting:
+			tmpl := msgtmpl.New(dx.iface, xid)
+			rq := func() []byte { return tmpl.RequestSelecting(dx.lastMsg.YourIP, *dx.lastOpts.ServerIdentifier) }
+			dx.lastMsg, dx.lastOpts, pass = dx.advanceState(verifyAck(dx.lastMsg, xid), rq)
+			dx.state = 33
+			if pass {
+				dx.state = stateIfconfig
+			} else {
+				dx.state = stateInit
+			}
+		case stateIfconfig:
+			fmt.Printf(">> SHOULD IFCONFIG MYSELF\n")
+			libif.SetIface(dx.iface, dx.lastMsg.YourIP, (*dx.lastOpts.Routers)[0])
+			dx.state = 99
+		default:
+			dx.l.Panicf("invalid state: %d\n", dx.state)
+		}
+	}
+}
+
+func (dx *dclient) advanceState(vrfy vrfyFunc, sender senderFunc) (reply dhcpmsg.Message, opts dhcpmsg.DecodedOptions, pass bool) {
+	dctx, dcancel := context.WithTimeout(dx.ctx, time.Second*15)
 	defer dcancel()
 
-	xid := rand.Uint32()
-	tmpl := msgtmpl.New(iface, xid)
-	sender := func() []byte {
-		return tmpl.Discover()
-	}
-
 	c := make(chan *dhcpmsg.Message)
-	go sendDiscover(dctx, iface, sender)
-	go catchDiscover(dctx, iface, xid, c)
+	go sendMessage(dctx, dx.iface, sender)
+	go catchReply(dctx, dx.iface, c)
 
 	// Message will be empty if we never got something or nil
 	// when catcher exited.
@@ -44,40 +91,30 @@ xloop:
 		case <-dctx.Done():
 			break xloop
 		case msg = <-c:
+			if msg != nil {
+				reply = *msg
+				opts = dhcpmsg.DecodeOptions(reply.Options)
+				if !vrfy(reply, opts) {
+					dx.l.Printf("Received message did not pass verification\n")
+					continue
+				} else {
+					pass = true
+				}
+			}
 			dcancel()
 			break xloop
 		}
 	}
 
-	reply := msg
 	// receiving 'nil' indicates that the catcher was shutdown.
 	for msg != nil {
 		msg = <-c
 	}
 	close(c)
-
-	fmt.Printf("Received reply: %+v\n", reply)
-	if reply != nil {
-		opts := dhcpmsg.DecodeOptions(reply.Options)
-		if opts.SubnetMask != nil {
-			fmt.Printf("SUBNET MASK = %s\n", *opts.SubnetMask)
-		}
-		if opts.DomainName != nil {
-			fmt.Printf("DOMAIN NAME = %s\n", *opts.DomainName)
-		}
-		if opts.Routers != nil {
-			fmt.Printf("ROUTERS = %s\n", *opts.Routers)
-		}
-		if opts.MessageType != nil {
-			fmt.Printf("MSG TYPE = %d\n", *opts.MessageType)
-		}
-		fmt.Printf("Offered IP = %s\n", reply.YourIP)
-		fmt.Printf("GIPADDR    = %s\n", reply.NextIP)
-	}
-	return nil
+	return
 }
 
-func catchDiscover(ctx context.Context, iface *net.Interface, xid uint32, c chan *dhcpmsg.Message) {
+func catchReply(ctx context.Context, iface *net.Interface, c chan *dhcpmsg.Message) {
 	s, err := rsocks.GetRawRecvSock(iface)
 	if err != nil {
 		c <- nil
@@ -103,7 +140,7 @@ func catchDiscover(ctx context.Context, iface *net.Interface, xid uint32, c chan
 		}
 		if v4.Protocol == 0x11 {
 			if udp, err := layer.DecodeUDP(v4.Data); err == nil && udp.DstPort == 68 {
-				if msg, err := dhcpmsg.Decode(udp.Data); err == nil && msg.Xid == xid {
+				if msg, err := dhcpmsg.Decode(udp.Data); err == nil {
 					c <- msg
 				}
 			}
@@ -111,7 +148,7 @@ func catchDiscover(ctx context.Context, iface *net.Interface, xid uint32, c chan
 	}
 }
 
-func sendDiscover(ctx context.Context, iface *net.Interface, sender func() []byte) error {
+func sendMessage(ctx context.Context, iface *net.Interface, sender func() []byte) error {
 	s, err := rsocks.GetRawSendSock(iface)
 	if err != nil {
 		return err
@@ -132,14 +169,15 @@ func sendDiscover(ctx context.Context, iface *net.Interface, sender func() []byt
 }
 
 func reInitIface(iface *net.Interface) error {
+	var lerr error
 	if err := libif.Down(iface); err != nil {
-		return err
+		lerr = err
 	}
 	if err := libif.Unconfigure(iface); err != nil {
-		return err
+		lerr = err
 	}
 	if err := libif.Up(iface); err != nil {
-		return err
+		lerr = err
 	}
-	return nil
+	return lerr
 }
