@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"os/exec"
+	"regexp"
 	"time"
 )
 
@@ -41,10 +42,29 @@ func Unconfigure(iface *net.Interface) error {
 	return lerr
 }
 
+func DefaultRoute(iface *net.Interface) (net.IP, error) {
+	c := exec.Command("ip", "-4", "route", "list", "0/0", "dev", iface.Name)
+	out, err := c.CombinedOutput()
+	if err != nil {
+		return net.IP{}, err
+	}
+	re := regexp.MustCompile(`default via (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})`)
+	if m := re.FindStringSubmatch(string(out)); len(m) == 2 {
+		return net.ParseIP(m[1]), nil
+	}
+	return net.IP{}, fmt.Errorf("failed to match IP in route output")
+}
+
 func SetIface(c Ifconfig) {
 	lft := fmt.Sprintf("%d", int(c.LeaseDuration.Seconds()))
-	xexec("ip", "-4", "addr", "add", fmt.Sprintf("%s/%d", c.IP.String(), c.Cidr),
+
+	xexec("ip", "-4", "addr", "replace", fmt.Sprintf("%s/%d", c.IP.String(), c.Cidr),
 		"valid_lft", lft, "preferred_lft", lft, "dev", c.Interface.Name)
+
+	if oldRoute, err := DefaultRoute(c.Interface); err == nil && !oldRoute.Equal(c.Router) {
+		fmt.Printf(">> Router changed from %s -> %s\n", oldRoute.String(), c.Router.String())
+		xexec("ip", "-4", "route", "del", "default", "via", oldRoute.String(), "dev", c.Interface.Name)
+	}
 	xexec("ip", "-4", "route", "add", "default", "via", c.Router.String(), "dev", c.Interface.Name)
 }
 
