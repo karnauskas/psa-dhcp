@@ -21,6 +21,11 @@ const (
 	stateIfconfig
 )
 
+const (
+	minLeaseDuration = time.Second * 30
+	maxLeaseDuration = time.Second * 600
+)
+
 type dclient struct {
 	ctx      context.Context
 	l        *log.Logger
@@ -67,12 +72,40 @@ func (dx *dclient) Run() error {
 			}
 		case stateIfconfig:
 			dx.l.Printf("%s: Configuring interface to %s\n", dx.iface.Name, dx.lastMsg.YourIP)
-			libif.SetIface(dx.iface, dx.lastMsg.YourIP, dx.lastOpts.Routers[0], dx.lastOpts.SubnetMask)
+			dx.l.Printf("Full config: %+v\n", dx.currentNetconfig())
+			// This should really take a libif.IfaceConfig{} struct
+			libif.SetIface(dx.currentNetconfig())
 			dx.state = 99
 		default:
 			dx.l.Panicf("invalid state: %d\n", dx.state)
 		}
 	}
+}
+
+func (dx dclient) currentNetconfig() libif.Ifconfig {
+	netmask := dx.lastMsg.YourIP.DefaultMask()
+	if _, bits := dx.lastOpts.SubnetMask.Size(); bits != 0 {
+		netmask = dx.lastOpts.SubnetMask
+	}
+
+	cidr, _ := netmask.Size()
+
+	lease := dx.lastOpts.IPAddressLeaseTime
+	if lease < minLeaseDuration {
+		lease = minLeaseDuration
+	}
+	if lease > maxLeaseDuration {
+		lease = maxLeaseDuration
+	}
+
+	c := libif.Ifconfig{
+		Interface:     dx.iface,
+		Router:        dx.lastOpts.Routers[0],
+		IP:            dx.lastMsg.YourIP,
+		Cidr:          cidr,
+		LeaseDuration: lease,
+	}
+	return c
 }
 
 func (dx *dclient) advanceState(vrfy vrfyFunc, sender senderFunc) (reply dhcpmsg.Message, opts dhcpmsg.DecodedOptions, pass bool) {

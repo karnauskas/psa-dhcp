@@ -4,7 +4,16 @@ import (
 	"fmt"
 	"net"
 	"os/exec"
+	"time"
 )
+
+type Ifconfig struct {
+	Interface     *net.Interface
+	Router        net.IP
+	IP            net.IP
+	Cidr          int
+	LeaseDuration time.Duration
+}
 
 // Down attempts to bring an interface down.
 func Down(iface *net.Interface) error {
@@ -32,14 +41,11 @@ func Unconfigure(iface *net.Interface) error {
 	return lerr
 }
 
-func SetIface(iface *net.Interface, ip net.IP, gw net.IP, netmask net.IPMask) {
-	if _, bits := netmask.Size(); bits == 0 {
-		netmask = ip.DefaultMask()
-	}
-	cidr, _ := netmask.Size()
-
-	xexec("ip", "-4", "addr", "add", fmt.Sprintf("%s/%d", ip.String(), cidr), "dev", iface.Name)
-	xexec("ip", "-4", "route", "add", "default", "via", gw.String(), "dev", iface.Name)
+func SetIface(c Ifconfig) {
+	lft := fmt.Sprintf("%d", int(c.LeaseDuration.Seconds()))
+	xexec("ip", "-4", "addr", "add", fmt.Sprintf("%s/%d", c.IP.String(), c.Cidr),
+		"valid_lft", lft, "preferred_lft", lft, "dev", c.Interface.Name)
+	xexec("ip", "-4", "route", "add", "default", "via", c.Router.String(), "dev", c.Interface.Name)
 }
 
 func xexec(cmd ...string) error {
