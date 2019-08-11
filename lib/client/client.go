@@ -9,9 +9,7 @@ import (
 
 	"gitlab.com/adrian_blx/psa-dhcp/lib/client/msgtmpl"
 	"gitlab.com/adrian_blx/psa-dhcp/lib/dhcpmsg"
-	"gitlab.com/adrian_blx/psa-dhcp/lib/layer"
 	"gitlab.com/adrian_blx/psa-dhcp/lib/libif"
-	"gitlab.com/adrian_blx/psa-dhcp/lib/rsocks"
 )
 
 const (
@@ -38,7 +36,6 @@ type dclient struct {
 }
 
 type vrfyFunc func(dhcpmsg.Message, dhcpmsg.DecodedOptions) bool
-type senderFunc func() []byte
 
 func New(ctx context.Context, l *log.Logger, iface *net.Interface) *dclient {
 	return &dclient{ctx: ctx, l: l, iface: iface, state: stateInitIface}
@@ -180,60 +177,6 @@ xloop:
 	}
 	close(c)
 	return
-}
-
-func catchReply(ctx context.Context, iface *net.Interface, c chan *dhcpmsg.Message) {
-	s, err := rsocks.GetRawRecvSock(iface)
-	if err != nil {
-		c <- nil
-		return
-	}
-	defer s.Close()
-
-	go func() {
-		<-ctx.Done()
-		s.Close()
-	}()
-
-	buff := make([]byte, 4096)
-	for {
-		nr, err := s.Read(buff)
-		if err != nil {
-			c <- nil
-			return
-		}
-		v4, err := layer.DecodeIPv4(buff[0:nr])
-		if err != nil {
-			continue
-		}
-		if v4.Protocol == 0x11 {
-			if udp, err := layer.DecodeUDP(v4.Data); err == nil && udp.DstPort == 68 {
-				if msg, err := dhcpmsg.Decode(udp.Data); err == nil {
-					c <- msg
-				}
-			}
-		}
-	}
-}
-
-func sendMessage(ctx context.Context, iface *net.Interface, sender func() []byte) error {
-	s, err := rsocks.GetRawSendSock(iface)
-	if err != nil {
-		return err
-	}
-	defer s.Close()
-
-	for {
-		if _, err := s.Write(sender()); err != nil {
-			return err
-		}
-		select {
-		case <-time.After(time.Second * 5):
-			continue
-		case <-ctx.Done():
-			return nil
-		}
-	}
 }
 
 func reInitIface(iface *net.Interface) error {
