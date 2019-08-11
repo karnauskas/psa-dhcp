@@ -48,30 +48,13 @@ func (dx *dclient) Run() error {
 
 		switch dx.state {
 		case stateInitIface:
-			dx.l.Printf("%s: unconfiguring interface...\n", dx.iface.Name)
-			reInitIface(dx.iface)
-			dx.state = stateInit
+			dx.runStateInitIface()
 		case stateInit:
-			dx.l.Printf("%s: Sending DHCPDISCOVER\n", dx.iface.Name)
-			tmpl := msgtmpl.New(dx.iface, xid)
-			dx.lastMsg, dx.lastOpts, pass = dx.advanceState(verifyDiscover(xid), func() []byte { return tmpl.Discover() })
-			if pass {
-				dx.state = stateSelecting
-			}
+			dx.runStateInit()
 		case stateSelecting:
-			dx.l.Printf("%s: Sending DHCPREQUEST\n", dx.iface.Name)
-			tmpl := msgtmpl.New(dx.iface, xid)
-			rq := func() []byte { return tmpl.RequestSelecting(dx.lastMsg.YourIP, dx.lastOpts.ServerIdentifier) }
-			dx.lastMsg, dx.lastOpts, pass = dx.advanceState(verifySelectingAck(dx.lastMsg, xid), rq)
-			if pass {
-				dx.state = stateIfconfig
-			} else {
-				dx.state = stateInit
-			}
+			dx.runStateSelecting()
 		case stateIfconfig:
-			dx.l.Printf("%s: Configuring interface to %s\n", dx.iface.Name, dx.lastMsg.YourIP)
-			libif.SetIface(dx.currentNetconfig())
-			dx.state = stateBound
+			dx.runStateIfconfig()
 		case stateBound:
 			t1 := time.Now().Add(normalizeLease(dx.lastOpts.RenewalTime))
 			dx.l.Printf("%s: Sleeping, T1 is %s\n", dx.iface.Name, t1)
@@ -179,13 +162,55 @@ xloop:
 	return
 }
 
-func reInitIface(iface *net.Interface) error {
-	var lerr error
-	if err := libif.Unconfigure(iface); err != nil {
-		lerr = err
+func (dx *dclient) runStateInitIface() {
+	dx.l.Printf("%s: unconfiguring interface\n", dx.iface.Name)
+	if err := libif.Unconfigure(dx.iface); err != nil {
+		dx.l.Printf("%s: unconfigure returned error %v\n", dx.iface.Name, err)
 	}
-	if err := libif.Up(iface); err != nil {
-		lerr = err
+	if err := libif.Up(dx.iface); err != nil {
+		dx.l.Printf("%s: bringing up interface returned error %v\n", dx.iface.Name, err)
 	}
-	return lerr
+	dx.state = stateInit
+}
+
+func (dx *dclient) runStateInit() {
+	dx.l.Printf("%s: Sending DHCPDISCOVER broadcast\n", dx.iface.Name)
+
+	xid := rand.Uint32()
+	tmpl := msgtmpl.New(dx.iface, xid)
+	var pass bool
+	dx.lastMsg, dx.lastOpts, pass = dx.advanceState(verifyDiscover(xid), func() []byte { return tmpl.Discover() })
+	if pass {
+		dx.state = stateSelecting
+	}
+	// else: can't advance to any other state.
+}
+
+func (dx *dclient) runStateSelecting() {
+	dx.l.Printf("%s: Sending DHCPREQUEST for %s to %s\n", dx.iface.Name, dx.lastMsg.YourIP, dx.lastOpts.ServerIdentifier)
+
+	xid := rand.Uint32()
+	tmpl := msgtmpl.New(dx.iface, xid)
+	rq := func() []byte { return tmpl.RequestSelecting(dx.lastMsg.YourIP, dx.lastOpts.ServerIdentifier) }
+	var pass bool
+	dx.lastMsg, dx.lastOpts, pass = dx.advanceState(verifySelectingAck(dx.lastMsg, xid), rq)
+	if pass {
+		dx.state = stateIfconfig
+	} else {
+		dx.state = stateInit
+	}
+}
+
+func (dx *dclient) runStateIfconfig() {
+	dx.l.Printf("%s: Configuring interface to use IP %s\n", dx.iface.Name, dx.lastMsg.YourIP)
+	if err := libif.SetIface(dx.currentNetconfig()); err != nil {
+		dx.l.Printf("%s: Unexpected error while configuring interface, falling back to INIT in 30 sec! (error was: %v)\n", dx.iface.Name, err)
+		dx.state = stateInitIface
+
+		// Sleep with context to not block the whole task.
+		fctx, _ := context.WithTimeout(dx.ctx, time.Second*30)
+		<-fctx.Done()
+	} else {
+		dx.state = stateBound
+	}
 }

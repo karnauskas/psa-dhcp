@@ -55,17 +55,22 @@ func DefaultRoute(iface *net.Interface) (net.IP, error) {
 	return net.IP{}, fmt.Errorf("failed to match IP in route output")
 }
 
-func SetIface(c Ifconfig) {
+func SetIface(c Ifconfig) error {
 	lft := fmt.Sprintf("%d", int(c.LeaseDuration.Seconds()))
 
-	xexec("ip", "-4", "addr", "replace", fmt.Sprintf("%s/%d", c.IP.String(), c.Cidr),
-		"valid_lft", lft, "preferred_lft", lft, "dev", c.Interface.Name)
+	if err := xexec("ip", "-4", "addr", "replace", fmt.Sprintf("%s/%d", c.IP.String(), c.Cidr),
+		"valid_lft", lft, "preferred_lft", lft, "dev", c.Interface.Name); err != nil {
+		return err
+	}
 
 	if oldRoute, err := DefaultRoute(c.Interface); err == nil && !oldRoute.Equal(c.Router) {
-		fmt.Printf(">> Router changed from %s -> %s\n", oldRoute.String(), c.Router.String())
+		// if this fails, adding a new route would fail below anyway.
 		xexec("ip", "-4", "route", "del", "default", "via", oldRoute.String(), "dev", c.Interface.Name)
 	}
-	xexec("ip", "-4", "route", "add", "default", "via", c.Router.String(), "dev", c.Interface.Name)
+	if err := xexec("ip", "-4", "route", "add", "default", "via", c.Router.String(), "dev", c.Interface.Name); err != nil {
+		return err
+	}
+	return nil
 }
 
 func xexec(cmd ...string) error {
