@@ -32,7 +32,7 @@ func Unconfigure(iface *net.Interface) error {
 	return lerr
 }
 
-func SetIface(iface *net.Interface, ip net.IP, gw net.IP) {
+func SetIface(iface *net.Interface, ip net.IP, gw net.IP, netmask *net.IP) {
 	// FIXME: NETMASK.
 	xexec("ip", "-4", "addr", "add", ip.String()+"/24", "dev", iface.Name)
 	xexec("ip", "-4", "route", "add", "default", "via", gw.String(), "dev", iface.Name)

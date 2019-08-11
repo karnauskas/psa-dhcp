@@ -66,7 +66,7 @@ func (dx *dclient) Run() error {
 			}
 		case stateIfconfig:
 			fmt.Printf(">> SHOULD IFCONFIG MYSELF\n")
-			libif.SetIface(dx.iface, dx.lastMsg.YourIP, (*dx.lastOpts.Routers)[0])
+			libif.SetIface(dx.iface, dx.lastMsg.YourIP, (*dx.lastOpts.Routers)[0], dx.lastOpts.SubnetMask)
 			dx.state = 99
 		default:
 			dx.l.Panicf("invalid state: %d\n", dx.state)
