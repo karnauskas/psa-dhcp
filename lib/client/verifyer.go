@@ -1,6 +1,7 @@
 package client
 
 import (
+	"fmt"
 	"net"
 
 	"gitlab.com/adrian_blx/psa-dhcp/lib/dhcpmsg"
@@ -11,13 +12,29 @@ var (
 	ipBcast   = net.IPv4(255, 255, 255, 255)
 )
 
-func verifyAck(lm dhcpmsg.Message, xid uint32) func(dhcpmsg.Message, dhcpmsg.DecodedOptions) bool {
+func verifySelectingAck(lm dhcpmsg.Message, xid uint32) func(dhcpmsg.Message, dhcpmsg.DecodedOptions) bool {
 	return func(m dhcpmsg.Message, opt dhcpmsg.DecodedOptions) bool {
 		if opt.MessageType != dhcpmsg.MsgTypeAck {
 			return false
 		}
 		if !lm.ClientIP.Equal(m.ClientIP) || !lm.YourIP.Equal(m.YourIP) {
 			// Fixme: verify more fields.
+			fmt.Printf(">> Fail here: %v, %v\n", lm.ClientIP, m.ClientIP)
+			return false
+		}
+		return verifyCommon()(xid, m, opt)
+	}
+}
+
+func verifyRenewAck(lm dhcpmsg.Message, xid uint32) func(dhcpmsg.Message, dhcpmsg.DecodedOptions) bool {
+	return func(m dhcpmsg.Message, opt dhcpmsg.DecodedOptions) bool {
+		if opt.MessageType != dhcpmsg.MsgTypeAck {
+			return false
+		}
+		if !lm.YourIP.Equal(m.YourIP) {
+			return false
+		}
+		if !m.ClientIP.Equal(m.YourIP) {
 			return false
 		}
 		return verifyCommon()(xid, m, opt)

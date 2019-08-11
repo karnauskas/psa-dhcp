@@ -19,11 +19,13 @@ const (
 	stateInit
 	stateSelecting
 	stateIfconfig
+	stateBound
+	stateRenewing
 )
 
 const (
-	minLeaseDuration = time.Second * 30
-	maxLeaseDuration = time.Second * 600
+	minLeaseDuration = time.Second * 10
+	maxLeaseDuration = time.Hour * 3
 )
 
 type dclient struct {
@@ -63,8 +65,7 @@ func (dx *dclient) Run() error {
 			dx.l.Printf("%s: Sending DHCPREQUEST\n", dx.iface.Name)
 			tmpl := msgtmpl.New(dx.iface, xid)
 			rq := func() []byte { return tmpl.RequestSelecting(dx.lastMsg.YourIP, dx.lastOpts.ServerIdentifier) }
-			dx.lastMsg, dx.lastOpts, pass = dx.advanceState(verifyAck(dx.lastMsg, xid), rq)
-			dx.state = 33
+			dx.lastMsg, dx.lastOpts, pass = dx.advanceState(verifySelectingAck(dx.lastMsg, xid), rq)
 			if pass {
 				dx.state = stateIfconfig
 			} else {
@@ -72,14 +73,42 @@ func (dx *dclient) Run() error {
 			}
 		case stateIfconfig:
 			dx.l.Printf("%s: Configuring interface to %s\n", dx.iface.Name, dx.lastMsg.YourIP)
-			dx.l.Printf("Full config: %+v\n", dx.currentNetconfig())
-			// This should really take a libif.IfaceConfig{} struct
 			libif.SetIface(dx.currentNetconfig())
-			dx.state = 99
+			dx.state = stateBound
+		case stateBound:
+			t1 := time.Now().Add(normalizeLease(dx.lastOpts.RenewalTime))
+			dx.l.Printf("%s: Sleeping, T1 is %s\n", dx.iface.Name, t1)
+			hackAbsoluteSleep(dx.ctx, t1)
+			dx.state = stateRenewing
+		case stateRenewing:
+			// FIXME: This should be unicast with the correct mac.
+			tmpl := msgtmpl.New(dx.iface, xid)
+			rq := func() []byte { return tmpl.RequestRenewing(dx.lastMsg.YourIP, dx.lastOpts.ServerIdentifier) }
+			dx.lastMsg, dx.lastOpts, pass = dx.advanceState(verifyRenewAck(dx.lastMsg, xid), rq)
+			if pass {
+				dx.state = stateIfconfig
+			} else {
+				dx.state = stateInitIface
+			}
 		default:
 			dx.l.Panicf("invalid state: %d\n", dx.state)
 		}
+
+		// break if main context is done.
+		if err := dx.ctx.Err(); err != nil {
+			return err
+		}
 	}
+}
+
+func normalizeLease(d time.Duration) time.Duration {
+	if d < minLeaseDuration {
+		return minLeaseDuration
+	}
+	if d > maxLeaseDuration {
+		return maxLeaseDuration
+	}
+	return d
 }
 
 func (dx dclient) currentNetconfig() libif.Ifconfig {
@@ -90,22 +119,27 @@ func (dx dclient) currentNetconfig() libif.Ifconfig {
 
 	cidr, _ := netmask.Size()
 
-	lease := dx.lastOpts.IPAddressLeaseTime
-	if lease < minLeaseDuration {
-		lease = minLeaseDuration
-	}
-	if lease > maxLeaseDuration {
-		lease = maxLeaseDuration
-	}
-
 	c := libif.Ifconfig{
-		Interface:     dx.iface,
-		Router:        dx.lastOpts.Routers[0],
-		IP:            dx.lastMsg.YourIP,
-		Cidr:          cidr,
-		LeaseDuration: lease,
+		Interface: dx.iface,
+		Router:    dx.lastOpts.Routers[0],
+		IP:        dx.lastMsg.YourIP,
+		Cidr:      cidr,
+		// This does not survive sleeps but is still nice to have in case this process dies.
+		LeaseDuration: normalizeLease(dx.lastOpts.IPAddressLeaseTime),
 	}
 	return c
+}
+
+func hackAbsoluteSleep(ctx context.Context, when time.Time) {
+	for {
+		if ctx.Err() != nil {
+			break
+		}
+		if time.Now().After(when) {
+			break
+		}
+		time.Sleep(time.Second * 3)
+	}
 }
 
 func (dx *dclient) advanceState(vrfy vrfyFunc, sender senderFunc) (reply dhcpmsg.Message, opts dhcpmsg.DecodedOptions, pass bool) {

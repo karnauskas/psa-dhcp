@@ -9,10 +9,11 @@ import (
 )
 
 func (rx *tmpl) RequestSelecting(requestedIP, serverIdentifier net.IP) []byte {
-	return rx.request(&requestedIP, &serverIdentifier)
+	return rx.request(net.IPv4(0, 0, 0, 0), net.IPv4(255, 255, 255, 255),
+		&requestedIP, &serverIdentifier)
 }
 
-func (rx *tmpl) request(requestedIP, serverIdentifier *net.IP) []byte {
+func (rx *tmpl) request(sourceIP, destinationIP net.IP, requestedIP, serverIdentifier *net.IP) []byte {
 	msgopts := []dhcpmsg.DHCPOpt{
 		dhcpmsg.OptionType(dhcpmsg.MsgTypeRequest),
 		dhcpmsg.OptionHostname(rx.hostname),
@@ -26,8 +27,8 @@ func (rx *tmpl) request(requestedIP, serverIdentifier *net.IP) []byte {
 
 	pl := layer.IPv4{
 		Identification: uint16(rand.Uint32()),
-		Destination:    net.IPv4(255, 255, 255, 255),
-		Source:         net.IPv4(0, 0, 0, 0),
+		Destination:    destinationIP,
+		Source:         sourceIP,
 		TTL:            250,
 		Protocol:       layer.ProtoUDP,
 		Data: layer.UDP{
@@ -41,6 +42,7 @@ func (rx *tmpl) request(requestedIP, serverIdentifier *net.IP) []byte {
 				Secs:      rx.lastSecs,
 				Flags:     dhcpmsg.FlagBroadcast, // We always send to 255.255.255.255.
 				ClientMAC: rx.hwaddr,
+				ClientIP:  sourceIP,
 				Cookie:    dhcpmsg.DHCPCookie,
 				Options:   msgopts,
 			}.Assemble(),
