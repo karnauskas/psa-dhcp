@@ -32,12 +32,11 @@ func Unconfigure(iface *net.Interface) error {
 	return lerr
 }
 
-func SetIface(iface *net.Interface, ip net.IP, gw net.IP, netmask *net.IPMask) {
-	m := ip.DefaultMask()
-	if netmask != nil {
-		m = *netmask
+func SetIface(iface *net.Interface, ip net.IP, gw net.IP, netmask net.IPMask) {
+	if _, bits := netmask.Size(); bits == 0 {
+		netmask = ip.DefaultMask()
 	}
-	cidr, _ := m.Size()
+	cidr, _ := netmask.Size()
 
 	xexec("ip", "-4", "addr", "add", fmt.Sprintf("%s/%d", ip.String(), cidr), "dev", iface.Name)
 	xexec("ip", "-4", "route", "add", "default", "via", gw.String(), "dev", iface.Name)

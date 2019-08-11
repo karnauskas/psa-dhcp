@@ -7,19 +7,19 @@ import (
 )
 
 type DecodedOptions struct {
-	SubnetMask         *net.IPMask
-	Routers            *[]net.IP
-	DNS                *[]net.IP
-	DomainName         *string
-	BroadcastAddress   *net.IP
-	RequestedIP        *net.IP
-	IPAddressLeaseTime *time.Duration
-	MessageType        *uint8
-	ServerIdentifier   *net.IP
-	Message            *string
-	RenewalTime        *time.Duration
-	RebindTime         *time.Duration
-	ClientIdentifier   *string
+	SubnetMask         net.IPMask
+	Routers            []net.IP
+	DNS                []net.IP
+	DomainName         string
+	BroadcastAddress   net.IP
+	RequestedIP        net.IP
+	IPAddressLeaseTime time.Duration
+	MessageType        uint8
+	ServerIdentifier   net.IP
+	Message            string
+	RenewalTime        time.Duration
+	RebindTime         time.Duration
+	ClientIdentifier   string
 }
 
 func DecodeOptions(opts []DHCPOpt) DecodedOptions {
@@ -57,50 +57,46 @@ func DecodeOptions(opts []DHCPOpt) DecodedOptions {
 	return d
 }
 
-func toUint8(x []byte) *uint8 {
-	if len(x) != 1 {
-		return nil
+func toUint8(x []byte) (v uint8) {
+	if len(x) == 1 {
+		v = uint8(x[0])
 	}
-	v := uint8(x[0])
-	return &v
+	return
 }
 
-func toDuration(x []byte) *time.Duration {
+func toDuration(x []byte) (d time.Duration) {
+	if len(x) == 4 {
+		d = time.Second * time.Duration(binary.BigEndian.Uint32(x))
+	}
+	return
+}
+
+func toString(x []byte) string {
+	return string(x)
+}
+
+func toNetmask(x []byte) net.IPMask {
 	if len(x) != 4 {
 		return nil
 	}
-	d := time.Second * time.Duration(binary.BigEndian.Uint32(x))
-	return &d
-}
-
-func toString(x []byte) *string {
-	s := string(x)
-	return &s
-}
-
-func toNetmask(x []byte) *net.IPMask {
-	if len(x) != 4 {
-		return nil
-	}
-	m := net.IPv4Mask(x[0], x[1], x[2], x[3])
-	return &m
+	return net.IPv4Mask(x[0], x[1], x[2], x[3])
 }
 
 // toV4 returns a net.IP array with at most one element.
-func toV4(x []byte) *net.IP {
-	if v := toV4A(x); v != nil && len(*v) == 1 {
-		return &(*v)[0]
+func toV4(x []byte) (ip net.IP) {
+	if v := toV4A(x); len(v) == 1 {
+		ip = v[0]
 	}
-	return nil
+	return
 }
 
 // toV4 returns a net.IP array.
-func toV4A(x []byte) *[]net.IP {
+func toV4A(x []byte) []net.IP {
 	var v []net.IP
 	if len(x) >= 4 && len(x)%4 == 0 {
 		for i := 0; i < len(x); i += 4 {
 			v = append(v, net.IPv4(x[i+0], x[i+1], x[i+2], x[i+3]))
 		}
 	}
-	return &v
+	return v
 }

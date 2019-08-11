@@ -57,7 +57,7 @@ func (dx *dclient) Run() error {
 		case stateSelecting:
 			dx.l.Printf("%s: Sending DHCPREQUEST\n", dx.iface.Name)
 			tmpl := msgtmpl.New(dx.iface, xid)
-			rq := func() []byte { return tmpl.RequestSelecting(dx.lastMsg.YourIP, *dx.lastOpts.ServerIdentifier) }
+			rq := func() []byte { return tmpl.RequestSelecting(dx.lastMsg.YourIP, dx.lastOpts.ServerIdentifier) }
 			dx.lastMsg, dx.lastOpts, pass = dx.advanceState(verifyAck(dx.lastMsg, xid), rq)
 			dx.state = 33
 			if pass {
@@ -67,7 +67,7 @@ func (dx *dclient) Run() error {
 			}
 		case stateIfconfig:
 			dx.l.Printf("%s: Configuring interface to %s\n", dx.iface.Name, dx.lastMsg.YourIP)
-			libif.SetIface(dx.iface, dx.lastMsg.YourIP, (*dx.lastOpts.Routers)[0], dx.lastOpts.SubnetMask)
+			libif.SetIface(dx.iface, dx.lastMsg.YourIP, dx.lastOpts.Routers[0], dx.lastOpts.SubnetMask)
 			dx.state = 99
 		default:
 			dx.l.Panicf("invalid state: %d\n", dx.state)

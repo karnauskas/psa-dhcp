@@ -1,44 +1,48 @@
 package client
 
 import (
-	"fmt"
 	"net"
 
 	"gitlab.com/adrian_blx/psa-dhcp/lib/dhcpmsg"
 )
 
+var (
+	ipInvalid = net.IPv4(0, 0, 0, 0)
+	ipBcast   = net.IPv4(255, 255, 255, 255)
+)
+
 func verifyAck(lm dhcpmsg.Message, xid uint32) func(dhcpmsg.Message, dhcpmsg.DecodedOptions) bool {
 	return func(m dhcpmsg.Message, opt dhcpmsg.DecodedOptions) bool {
-		if m.Xid != xid {
-			return false
-		}
-		if x := opt.MessageType; x == nil || *x != dhcpmsg.MsgTypeAck {
-			fmt.Printf("YFAIL :: %d\n", x)
+		if opt.MessageType != dhcpmsg.MsgTypeAck {
 			return false
 		}
 		if !lm.ClientIP.Equal(m.ClientIP) || !lm.YourIP.Equal(m.YourIP) {
 			// Fixme: verify more fields.
-			fmt.Printf("XFAIL: %+v -> %+v\n", lm.ClientIP, m.ClientIP)
 			return false
 		}
-		if opt.SubnetMask == nil || opt.Routers == nil || opt.ServerIdentifier == nil ||
-			m.YourIP.Equal(net.IPv4(0, 0, 0, 0)) || m.YourIP.Equal(net.IPv4(255, 255, 255, 255)) {
-			return false
-		}
-		return true
+		return verifyCommon()(xid, m, opt)
 	}
 }
 
 func verifyDiscover(xid uint32) func(dhcpmsg.Message, dhcpmsg.DecodedOptions) bool {
 	return func(m dhcpmsg.Message, opt dhcpmsg.DecodedOptions) bool {
+		if opt.MessageType != dhcpmsg.MsgTypeOffer {
+			return false
+		}
+		return verifyCommon()(xid, m, opt)
+	}
+}
+
+func verifyCommon() func(uint32, dhcpmsg.Message, dhcpmsg.DecodedOptions) bool {
+	return func(xid uint32, m dhcpmsg.Message, opt dhcpmsg.DecodedOptions) bool {
 		if m.Xid != xid {
 			return false
 		}
-		if x := opt.MessageType; x == nil || *x != dhcpmsg.MsgTypeOffer {
+		if _, bits := opt.SubnetMask.Size(); bits == 0 {
 			return false
 		}
-		if opt.SubnetMask == nil || opt.Routers == nil || opt.ServerIdentifier == nil ||
-			m.YourIP.Equal(net.IPv4(0, 0, 0, 0)) || m.YourIP.Equal(net.IPv4(255, 255, 255, 255)) {
+		if opt.ServerIdentifier.Equal(ipInvalid) || len(opt.Routers) == 0 ||
+			ipInvalid.Equal(m.YourIP) || ipBcast.Equal(m.YourIP) {
 			return false
 		}
 		return true

@@ -24,6 +24,12 @@ type Message struct {
 	Options        []DHCPOpt
 }
 
+type DHCPOpt struct {
+	Option uint8
+	Data   []byte
+}
+
+// Assemble assembles a dhcp message into raw bytes.
 func (msg Message) Assemble() []byte {
 	buf := make([]byte, 240)
 	buf[0] = msg.Op
@@ -73,11 +79,6 @@ func setIPv4(b []byte, ip net.IP) {
 	if v4 := ip.To4(); v4 != nil {
 		copy(b, v4)
 	}
-}
-
-type DHCPOpt struct {
-	Option uint8
-	Data   []byte
 }
 
 func OptionType(t uint8) DHCPOpt {
