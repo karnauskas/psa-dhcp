@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"math/rand"
 	"net"
@@ -45,16 +44,18 @@ func (dx *dclient) Run() error {
 
 		switch dx.state {
 		case stateInitIface:
-			dx.l.Printf("Downing iface\n")
+			dx.l.Printf("%s: unconfiguring interface...\n", dx.iface.Name)
 			reInitIface(dx.iface)
 			dx.state = stateInit
 		case stateInit:
+			dx.l.Printf("%s: Sending DHCPDISCOVER\n", dx.iface.Name)
 			tmpl := msgtmpl.New(dx.iface, xid)
 			dx.lastMsg, dx.lastOpts, pass = dx.advanceState(verifyDiscover(xid), func() []byte { return tmpl.Discover() })
 			if pass {
 				dx.state = stateSelecting
 			}
 		case stateSelecting:
+			dx.l.Printf("%s: Sending DHCPREQUEST\n", dx.iface.Name)
 			tmpl := msgtmpl.New(dx.iface, xid)
 			rq := func() []byte { return tmpl.RequestSelecting(dx.lastMsg.YourIP, *dx.lastOpts.ServerIdentifier) }
 			dx.lastMsg, dx.lastOpts, pass = dx.advanceState(verifyAck(dx.lastMsg, xid), rq)
@@ -65,7 +66,7 @@ func (dx *dclient) Run() error {
 				dx.state = stateInit
 			}
 		case stateIfconfig:
-			fmt.Printf(">> SHOULD IFCONFIG MYSELF\n")
+			dx.l.Printf("%s: Configuring interface to %s\n", dx.iface.Name, dx.lastMsg.YourIP)
 			libif.SetIface(dx.iface, dx.lastMsg.YourIP, (*dx.lastOpts.Routers)[0], dx.lastOpts.SubnetMask)
 			dx.state = 99
 		default:
@@ -170,9 +171,6 @@ func sendMessage(ctx context.Context, iface *net.Interface, sender func() []byte
 
 func reInitIface(iface *net.Interface) error {
 	var lerr error
-	if err := libif.Down(iface); err != nil {
-		lerr = err
-	}
 	if err := libif.Unconfigure(iface); err != nil {
 		lerr = err
 	}

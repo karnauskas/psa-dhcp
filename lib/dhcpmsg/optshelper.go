@@ -7,7 +7,7 @@ import (
 )
 
 type DecodedOptions struct {
-	SubnetMask         *net.IP
+	SubnetMask         *net.IPMask
 	Routers            *[]net.IP
 	DNS                *[]net.IP
 	DomainName         *string
@@ -27,7 +27,7 @@ func DecodeOptions(opts []DHCPOpt) DecodedOptions {
 	for _, o := range opts {
 		switch o.Option {
 		case OptSubnetMask:
-			d.SubnetMask = toV4(o.Data)
+			d.SubnetMask = toNetmask(o.Data)
 		case OptRouter:
 			d.Routers = toV4A(o.Data)
 		case OptDNS:
@@ -76,6 +76,14 @@ func toDuration(x []byte) *time.Duration {
 func toString(x []byte) *string {
 	s := string(x)
 	return &s
+}
+
+func toNetmask(x []byte) *net.IPMask {
+	if len(x) != 4 {
+		return nil
+	}
+	m := net.IPv4Mask(x[0], x[1], x[2], x[3])
+	return &m
 }
 
 // toV4 returns a net.IP array with at most one element.
