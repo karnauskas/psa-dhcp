@@ -12,6 +12,7 @@ type DecodedOptions struct {
 	DNS                *[]net.IP
 	DomainName         *string
 	BroadcastAddress   *net.IP
+	RequestedIP        *net.IP
 	IPAddressLeaseTime *time.Duration
 	MessageType        *uint8
 	ServerIdentifier   *net.IP
@@ -35,6 +36,8 @@ func DecodeOptions(opts []DHCPOpt) DecodedOptions {
 			d.DomainName = toString(o.Data)
 		case OptBroadcastAddress:
 			d.BroadcastAddress = toV4(o.Data)
+		case OptRequestedIP:
+			d.RequestedIP = toV4(o.Data)
 		case OptIPAddressLeaseTime:
 			d.IPAddressLeaseTime = toDuration(o.Data)
 		case OptMessageType:
