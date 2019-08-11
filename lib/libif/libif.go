@@ -48,6 +48,10 @@ func DefaultRoute(iface *net.Interface) (net.IP, error) {
 	if err != nil {
 		return net.IP{}, err
 	}
+	if len(out) == 0 {
+		// no route is not really an error.
+		return net.IP{}, nil
+	}
 	re := regexp.MustCompile(`default via (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})`)
 	if m := re.FindStringSubmatch(string(out)); len(m) == 2 {
 		return net.ParseIP(m[1]), nil
@@ -63,12 +67,22 @@ func SetIface(c Ifconfig) error {
 		return err
 	}
 
-	if oldRoute, err := DefaultRoute(c.Interface); err == nil && !oldRoute.Equal(c.Router) {
-		// if this fails, adding a new route would fail below anyway.
-		xexec("ip", "-4", "route", "del", "default", "via", oldRoute.String(), "dev", c.Interface.Name)
-	}
-	if err := xexec("ip", "-4", "route", "add", "default", "via", c.Router.String(), "dev", c.Interface.Name); err != nil {
+	oldRoute, err := DefaultRoute(c.Interface)
+	if err != nil {
 		return err
+	}
+
+	if !oldRoute.Equal(net.IP{}) && !oldRoute.Equal(c.Router) {
+		// We have an *existing* route which doesn't match: delete it.
+		if err := xexec("ip", "-4", "route", "del", "default", "via", oldRoute.String(), "dev", c.Interface.Name); err != nil {
+			return err
+		}
+	}
+	if !oldRoute.Equal(c.Router) {
+		// Non-existing or old route is wrong: add new route.
+		if err := xexec("ip", "-4", "route", "add", "default", "via", c.Router.String(), "dev", c.Interface.Name); err != nil {
+			return err
+		}
 	}
 	return nil
 }
