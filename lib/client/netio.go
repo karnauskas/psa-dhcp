@@ -15,7 +15,7 @@ type senderFunc func() []byte
 
 // sendMessage invokes the supplied 'sendFunc' function to send a message on the selected interface.
 func sendMessage(ctx context.Context, iface *net.Interface, sender senderFunc) error {
-	s, err := rsocks.GetRawSendSock(iface)
+	s, err := rsocks.GetIPSendSock(iface)
 	if err != nil {
 		return err
 	}

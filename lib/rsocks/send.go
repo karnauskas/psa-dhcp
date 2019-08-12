@@ -10,16 +10,31 @@ type rssock struct {
 	sll syscall.Sockaddr
 }
 
-func GetRawSendSock(iface *net.Interface) (*rssock, error) {
-	s, err := syscall.Socket(syscall.AF_PACKET, syscall.SOCK_DGRAM, int(htons(syscall.ETH_P_IP)))
+var (
+	bcastAddr = [6]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
+)
+
+func GetIPSendSock(iface *net.Interface) (*rssock, error) {
+	return getSendSock(iface, htons(syscall.ETH_P_IP), bcastAddr)
+}
+
+func GetARPSendSock(iface *net.Interface) (*rssock, error) {
+	return getSendSock(iface, htons(syscall.ETH_P_ARP), bcastAddr)
+}
+
+func getSendSock(iface *net.Interface, proto uint16, hwaddr [6]byte) (*rssock, error) {
+	s, err := syscall.Socket(syscall.AF_PACKET, syscall.SOCK_DGRAM, int(proto))
 	if err != nil {
 		return nil, err
 	}
 
+	var sllHwaddr [8]byte
+	copy(sllHwaddr[0:], hwaddr[0:])
+
 	sll := &syscall.SockaddrLinklayer{
-		Protocol: htons(syscall.ETH_P_IP),
-		Halen:    6,
-		Addr:     [8]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x0, 0x0},
+		Protocol: proto,
+		Halen:    uint8(len(hwaddr)),
+		Addr:     sllHwaddr,
 		Ifindex:  iface.Index,
 	}
 	if err := syscall.Bind(s, sll); err != nil {
