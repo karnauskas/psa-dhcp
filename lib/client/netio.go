@@ -42,7 +42,7 @@ func sendMessage(ctx context.Context, iface *net.Interface, sender senderFunc) e
 // catchReply waits for DHCP messages and returns them using the supplied channel.
 // Returning a 'nil' message indicates that this function returned.
 func catchReply(ctx context.Context, iface *net.Interface, c chan *dhcpmsg.Message) {
-	s, err := rsocks.GetRawRecvSock(iface)
+	s, err := rsocks.GetIPRecvSock(iface)
 	if err != nil {
 		c <- nil
 		return
