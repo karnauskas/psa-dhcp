@@ -41,13 +41,13 @@ func sendMessage(ctx context.Context, iface *net.Interface, sender senderFunc) e
 
 // catchReply waits for DHCP messages and returns them using the supplied channel.
 // Returning a 'nil' message indicates that this function returned.
-func catchReply(ctx context.Context, iface *net.Interface, c chan *dhcpmsg.Message) {
+func catchReply(octx context.Context, iface *net.Interface, vrfy vrfyFunc) (dhcpmsg.Message, dhcpmsg.DecodedOptions, error) {
 	s, err := rsocks.GetIPRecvSock(iface)
 	if err != nil {
-		c <- nil
-		return
+		return dhcpmsg.Message{}, dhcpmsg.DecodedOptions{}, err
 	}
-	defer s.Close()
+	ctx, cancel := context.WithCancel(octx)
+	defer cancel()
 
 	go func() {
 		<-ctx.Done()
@@ -58,8 +58,7 @@ func catchReply(ctx context.Context, iface *net.Interface, c chan *dhcpmsg.Messa
 	for {
 		nr, err := s.Read(buff)
 		if err != nil {
-			c <- nil
-			return
+			return dhcpmsg.Message{}, dhcpmsg.DecodedOptions{}, err
 		}
 		v4, err := layer.DecodeIPv4(buff[0:nr])
 		if err != nil {
@@ -68,7 +67,10 @@ func catchReply(ctx context.Context, iface *net.Interface, c chan *dhcpmsg.Messa
 		if v4.Protocol == 0x11 {
 			if udp, err := layer.DecodeUDP(v4.Data); err == nil && udp.DstPort == 68 {
 				if msg, err := dhcpmsg.Decode(udp.Data); err == nil {
-					c <- msg
+					opts := dhcpmsg.DecodeOptions(msg.Options)
+					if vrfy(*msg, opts) {
+						return *msg, opts, nil
+					}
 				}
 			}
 		}

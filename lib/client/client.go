@@ -122,44 +122,20 @@ func hackAbsoluteSleep(ctx context.Context, when time.Time) {
 	}
 }
 
-func (dx *dclient) advanceState(vrfy vrfyFunc, sender senderFunc) (reply dhcpmsg.Message, opts dhcpmsg.DecodedOptions, pass bool) {
-	dctx, dcancel := context.WithTimeout(dx.ctx, time.Second*15)
-	defer dcancel()
+func (dx *dclient) advanceState(vrfy vrfyFunc, sender senderFunc) (dhcpmsg.Message, dhcpmsg.DecodedOptions, bool) {
+	ctx, cancel := context.WithTimeout(dx.ctx, time.Second*60)
+	defer cancel()
 
-	c := make(chan *dhcpmsg.Message)
-	go sendMessage(dctx, dx.iface, sender)
-	go catchReply(dctx, dx.iface, c)
+	go sendMessage(ctx, dx.iface, sender)
+	msg, opts, err := catchReply(ctx, dx.iface, vrfy)
 
-	// Message will be empty if we never got something or nil
-	// when catcher exited.
-	msg := &dhcpmsg.Message{}
-xloop:
-	for {
-		select {
-		case <-dctx.Done():
-			break xloop
-		case msg = <-c:
-			if msg != nil {
-				reply = *msg
-				opts = dhcpmsg.DecodeOptions(reply.Options)
-				if !vrfy(reply, opts) {
-					dx.l.Printf("Received message did not pass verification\n")
-					continue
-				} else {
-					pass = true
-				}
-			}
-			dcancel()
-			break xloop
-		}
+	if err != nil {
+		// If there was an error, wait until the context expires (if we might have a
+		// sock setup error) to avoid flooding the line.
+		<-ctx.Done()
+		return msg, opts, false
 	}
-
-	// receiving 'nil' indicates that the catcher was shutdown.
-	for msg != nil {
-		msg = <-c
-	}
-	close(c)
-	return
+	return msg, opts, true
 }
 
 func (dx *dclient) runStateInitIface() {
