@@ -40,6 +40,10 @@ func verifyRenewAck(lm dhcpmsg.Message, xid uint32) func(dhcpmsg.Message, dhcpms
 		if !lm.YourIP.Equal(m.YourIP) {
 			return false
 		}
+		if !lm.NextIP.Equal(m.NextIP) {
+			return false
+		}
+		// yes. these should match.
 		if !m.ClientIP.Equal(m.YourIP) {
 			return false
 		}

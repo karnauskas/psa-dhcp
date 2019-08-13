@@ -23,7 +23,7 @@ const (
 
 const (
 	minLeaseDuration = time.Second * 10
-	maxLeaseDuration = time.Hour * 3
+	maxLeaseDuration = time.Second * 30
 )
 
 type dclient struct {
