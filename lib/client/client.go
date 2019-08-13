@@ -45,7 +45,7 @@ func (dx *dclient) Run() error {
 	var pass bool
 	for {
 		xid := rand.Uint32()
-
+		dx.l.Printf("%s: is now in state %d\n", dx.iface.Name, dx.state)
 		switch dx.state {
 		case stateInitIface:
 			dx.runStateInitIface()
@@ -68,6 +68,10 @@ func (dx *dclient) Run() error {
 			if pass {
 				dx.state = stateIfconfig
 			} else {
+				// should get into other state after T1.
+				// not sure how long we will stick around in this one? just loop?
+				// Or maybe have RequestRenewing have a deadline? would be best
+				// we could then set it to T2.
 				dx.state = stateInitIface
 			}
 		default:
@@ -155,7 +159,7 @@ func (dx *dclient) runStateInit() {
 	xid := rand.Uint32()
 	tmpl := msgtmpl.New(dx.iface, xid)
 	var pass bool
-	dx.lastMsg, dx.lastOpts, pass = dx.advanceState(verifyDiscover(xid), func() []byte { return tmpl.Discover() })
+	dx.lastMsg, dx.lastOpts, pass = dx.advanceState(verifyOffer(xid), func() []byte { return tmpl.Discover() })
 	if pass {
 		dx.state = stateSelecting
 	}
@@ -163,11 +167,11 @@ func (dx *dclient) runStateInit() {
 }
 
 func (dx *dclient) runStateSelecting() {
-	dx.l.Printf("%s: Sending DHCPREQUEST for %s to %s\n", dx.iface.Name, dx.lastMsg.YourIP, dx.lastOpts.ServerIdentifier)
+	dx.l.Printf("%s: Sending DHCPREQUEST for %s to %s\n", dx.iface.Name, dx.lastMsg.YourIP, dx.lastMsg.NextIP)
 
 	xid := rand.Uint32()
 	tmpl := msgtmpl.New(dx.iface, xid)
-	rq := func() []byte { return tmpl.RequestSelecting(dx.lastMsg.YourIP, dx.lastOpts.ServerIdentifier) }
+	rq := func() []byte { return tmpl.RequestSelecting(dx.lastMsg.YourIP, dx.lastMsg.NextIP) }
 	var pass bool
 	dx.lastMsg, dx.lastOpts, pass = dx.advanceState(verifySelectingAck(dx.lastMsg, xid), rq)
 	if pass {
