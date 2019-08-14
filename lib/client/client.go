@@ -13,26 +13,44 @@ import (
 )
 
 const (
+	// Unconfigures the interface and brings it up.
 	stateInitIface = iota
+	// Send initial DHCPDISCOVER.
 	stateInit
+	// Selects a dhcp server via DHCPREQUEST.
 	stateSelecting
+	// Configures the OS with the received configuration.
 	stateIfconfig
+	// We have a lease and are sleeping.
 	stateBound
+	// We try to renew the state (unicast)
 	stateRenewing
+	// We try to rebind (broadcast)
+	stateRebinding
 )
 
 const (
 	minLeaseDuration = time.Second * 10
-	maxLeaseDuration = time.Second * 30
+	maxLeaseDuration = time.Second * 1200
 )
 
+type boundDeadlines struct {
+	// t1 is the time at which the client enters stateRenewing.
+	t1 time.Time
+	// t2 is the time at which the client enters stateRebinding.
+	t2 time.Time
+	// tx is the time at which we give up our IP.
+	tx time.Time
+}
+
 type dclient struct {
-	ctx      context.Context
-	l        *log.Logger
-	iface    *net.Interface
-	state    int
-	lastMsg  dhcpmsg.Message
-	lastOpts dhcpmsg.DecodedOptions
+	ctx            context.Context
+	l              *log.Logger
+	iface          *net.Interface
+	state          int
+	lastMsg        dhcpmsg.Message
+	lastOpts       dhcpmsg.DecodedOptions
+	boundDeadlines boundDeadlines
 }
 
 type vrfyFunc func(dhcpmsg.Message, dhcpmsg.DecodedOptions) bool
@@ -42,7 +60,6 @@ func New(ctx context.Context, l *log.Logger, iface *net.Interface) *dclient {
 }
 
 func (dx *dclient) Run() error {
-	var pass bool
 	for {
 		xid := rand.Uint32()
 		dx.l.Printf("%s: is now in state %d\n", dx.iface.Name, dx.state)
@@ -56,23 +73,40 @@ func (dx *dclient) Run() error {
 		case stateIfconfig:
 			dx.runStateIfconfig()
 		case stateBound:
-			t1 := time.Now().Add(normalizeLease(dx.lastOpts.RenewalTime))
-			dx.l.Printf("%s: Sleeping, T1 is %s\n", dx.iface.Name, t1)
-			hackAbsoluteSleep(dx.ctx, t1)
+			// fixme: verify if the times make sense (x > a)
+			now := time.Now()
+			dx.boundDeadlines = boundDeadlines{
+				t1: now.Add(normalizeLease(dx.lastOpts.RenewalTime)),
+				t2: now.Add(normalizeLease(dx.lastOpts.RebindTime)),
+				tx: now.Add(normalizeLease(dx.lastOpts.IPAddressLeaseTime)),
+			}
+			dx.l.Printf("%s: Sleeping, deadlines are %+v\n", dx.iface.Name, dx.boundDeadlines)
+			hackAbsoluteSleep(dx.ctx, dx.boundDeadlines.t1)
 			dx.state = stateRenewing
 		case stateRenewing:
+			dx.l.Printf("%s: Is in state renewing until %s\n", dx.iface.Name, dx.boundDeadlines.t2)
 			// FIXME: This should be unicast with the correct mac.
 			tmpl := msgtmpl.New(dx.iface, xid)
 			rq := func() []byte { return tmpl.RequestRenewing(dx.lastMsg.YourIP, dx.lastOpts.ServerIdentifier) }
-			dx.lastMsg, dx.lastOpts, pass = dx.advanceState(verifyRenewAck(dx.lastMsg, xid), rq)
-			if pass {
+
+			if lm, lo, p := dx.advanceState(dx.boundDeadlines.t2, verifyRenewAck(dx.lastMsg, xid), rq); p {
 				dx.state = stateIfconfig
+				dx.lastMsg = lm
+				dx.lastOpts = lo
 			} else {
-				// should get into other state after T1.
-				// not sure how long we will stick around in this one? just loop?
-				// Or maybe have RequestRenewing have a deadline? would be best
-				// we could then set it to T2.
-				dx.state = stateInitIface
+				dx.state = stateRebinding
+			}
+		case stateRebinding:
+			// fixme: this must not use the target IP.
+			dx.l.Printf("%s: Is in state rebinding until %s\n", dx.iface.Name, dx.boundDeadlines.tx)
+			tmpl := msgtmpl.New(dx.iface, xid)
+			rq := func() []byte { return tmpl.RequestRebinding(dx.lastMsg.YourIP, dx.lastOpts.ServerIdentifier) }
+			if lm, lo, p := dx.advanceState(dx.boundDeadlines.tx, verifyRebindingAck(dx.lastMsg, xid), rq); p {
+				dx.state = stateIfconfig
+				dx.lastMsg = lm
+				dx.lastOpts = lo
+			} else {
+				dx.state = stateInit
 			}
 		default:
 			dx.l.Panicf("invalid state: %d\n", dx.state)
@@ -104,12 +138,11 @@ func (dx dclient) currentNetconfig() libif.Ifconfig {
 	cidr, _ := netmask.Size()
 
 	c := libif.Ifconfig{
-		Interface: dx.iface,
-		Router:    dx.lastOpts.Routers[0],
-		IP:        dx.lastMsg.YourIP,
-		Cidr:      cidr,
-		// This does not survive sleeps but is still nice to have in case this process dies.
-		LeaseDuration: normalizeLease(dx.lastOpts.IPAddressLeaseTime),
+		Interface:     dx.iface,
+		Router:        dx.lastOpts.Routers[0],
+		IP:            dx.lastMsg.YourIP,
+		Cidr:          cidr,
+		LeaseDuration: normalizeLease(dx.lastOpts.RebindTime),
 	}
 	return c
 }
@@ -126,9 +159,11 @@ func hackAbsoluteSleep(ctx context.Context, when time.Time) {
 	}
 }
 
-func (dx *dclient) advanceState(vrfy vrfyFunc, sender senderFunc) (dhcpmsg.Message, dhcpmsg.DecodedOptions, bool) {
-	ctx, cancel := context.WithTimeout(dx.ctx, time.Second*60)
+func (dx *dclient) advanceState(deadline time.Time, vrfy vrfyFunc, sender senderFunc) (dhcpmsg.Message, dhcpmsg.DecodedOptions, bool) {
+	ctx, cancel := context.WithDeadline(dx.ctx, deadline)
 	defer cancel()
+
+	dx.l.Printf("advanceState until %s\n", deadline)
 
 	go sendMessage(ctx, dx.iface, sender)
 	msg, opts, err := catchReply(ctx, dx.iface, vrfy)
@@ -142,6 +177,7 @@ func (dx *dclient) advanceState(vrfy vrfyFunc, sender senderFunc) (dhcpmsg.Messa
 	return msg, opts, true
 }
 
+// runStateInitIface removes any IPv4 configuration from the interface and brings it up.
 func (dx *dclient) runStateInitIface() {
 	dx.l.Printf("%s: unconfiguring interface\n", dx.iface.Name)
 	if err := libif.Unconfigure(dx.iface); err != nil {
@@ -153,37 +189,41 @@ func (dx *dclient) runStateInitIface() {
 	dx.state = stateInit
 }
 
+// runStateInit broadcasts a DHCPDISCOVER message on the interface.
 func (dx *dclient) runStateInit() {
 	dx.l.Printf("%s: Sending DHCPDISCOVER broadcast\n", dx.iface.Name)
 
 	xid := rand.Uint32()
 	tmpl := msgtmpl.New(dx.iface, xid)
-	var pass bool
-	dx.lastMsg, dx.lastOpts, pass = dx.advanceState(verifyOffer(xid), func() []byte { return tmpl.Discover() })
-	if pass {
+	if lm, lo, p := dx.advanceState(time.Now().Add(time.Minute), verifyOffer(xid), func() []byte { return tmpl.Discover() }); p {
 		dx.state = stateSelecting
+		dx.lastMsg = lm
+		dx.lastOpts = lo
 	}
 	// else: can't advance to any other state.
 }
 
+// runStateSelecting selects a dhcp server by *broadcasting* a DHCPREQUEST.
 func (dx *dclient) runStateSelecting() {
 	dx.l.Printf("%s: Sending DHCPREQUEST for %s to %s\n", dx.iface.Name, dx.lastMsg.YourIP, dx.lastMsg.NextIP)
 
 	xid := rand.Uint32()
 	tmpl := msgtmpl.New(dx.iface, xid)
 	rq := func() []byte { return tmpl.RequestSelecting(dx.lastMsg.YourIP, dx.lastMsg.NextIP) }
-	var pass bool
-	dx.lastMsg, dx.lastOpts, pass = dx.advanceState(verifySelectingAck(dx.lastMsg, xid), rq)
-	if pass {
+	if lm, lo, p := dx.advanceState(time.Now().Add(time.Minute), verifySelectingAck(dx.lastMsg, xid), rq); p {
 		dx.state = stateIfconfig
+		dx.lastMsg = lm
+		dx.lastOpts = lo
 	} else {
 		dx.state = stateInit
 	}
 }
 
+// runStateIfconfig applies the current state of the client to the network interface.
 func (dx *dclient) runStateIfconfig() {
-	dx.l.Printf("%s: Configuring interface to use IP %s\n", dx.iface.Name, dx.lastMsg.YourIP)
-	if err := libif.SetIface(dx.currentNetconfig()); err != nil {
+	nc := dx.currentNetconfig()
+	dx.l.Printf("%s: Configuring interface to use IP %s/%d -> %s\n", dx.iface.Name, nc.IP, nc.Cidr, nc.Router)
+	if err := libif.SetIface(nc); err != nil {
 		dx.l.Printf("%s: Unexpected error while configuring interface, falling back to INIT in 30 sec! (error was: %v)\n", dx.iface.Name, err)
 		dx.state = stateInitIface
 

@@ -32,6 +32,21 @@ func verifySelectingAck(lm dhcpmsg.Message, xid uint32) func(dhcpmsg.Message, dh
 	}
 }
 
+func verifyRebindingAck(lm dhcpmsg.Message, xid uint32) func(dhcpmsg.Message, dhcpmsg.DecodedOptions) bool {
+	return func(m dhcpmsg.Message, opt dhcpmsg.DecodedOptions) bool {
+		if opt.MessageType != dhcpmsg.MsgTypeAck {
+			return false
+		}
+		if !lm.YourIP.Equal(m.YourIP) {
+			return false
+		}
+		if !lm.NextIP.Equal(m.NextIP) {
+			return false
+		}
+		return verifyCommon()(xid, m, opt)
+	}
+}
+
 func verifyRenewAck(lm dhcpmsg.Message, xid uint32) func(dhcpmsg.Message, dhcpmsg.DecodedOptions) bool {
 	return func(m dhcpmsg.Message, opt dhcpmsg.DecodedOptions) bool {
 		if opt.MessageType != dhcpmsg.MsgTypeAck {
@@ -43,7 +58,7 @@ func verifyRenewAck(lm dhcpmsg.Message, xid uint32) func(dhcpmsg.Message, dhcpms
 		if !lm.NextIP.Equal(m.NextIP) {
 			return false
 		}
-		// yes. these should match.
+		// yes. these should match - but why?
 		if !m.ClientIP.Equal(m.YourIP) {
 			return false
 		}
