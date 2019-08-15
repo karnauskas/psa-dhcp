@@ -50,7 +50,7 @@ func (rx *tmpl) request(msgtype uint8, sourceIP, destinationIP net.IP, requested
 			DstPort: 67,
 			Data: dhcpmsg.Message{
 				Op:        dhcpmsg.OpRequest,
-				Htype:     dhcpmsg.HtypeIEEE802,
+				Htype:     dhcpmsg.HtypeETHER,
 				Hlen:      uint8(len(rx.hwaddr)),
 				Xid:       rx.xid,
 				Secs:      uint16(time.Now().Sub(rx.start).Seconds()),

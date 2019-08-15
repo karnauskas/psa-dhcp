@@ -6,8 +6,7 @@ const (
 )
 
 const (
-	HtypeETHER   = 1
-	HtypeIEEE802 = 6
+	HtypeETHER = 1
 )
 
 const (
