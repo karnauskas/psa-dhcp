@@ -34,11 +34,6 @@ func (rx *tmpl) request(msgtype uint8, sourceIP, destinationIP net.IP, requested
 		msgopts = append(msgopts, dhcpmsg.OptionServerIdentifier(*serverIdentifier))
 	}
 
-	var flags uint16
-	if sourceIP.Equal(ipNone) {
-		flags |= dhcpmsg.FlagBroadcast
-	}
-
 	pl := layer.IPv4{
 		Identification: uint16(rand.Uint32()),
 		Destination:    destinationIP,
@@ -54,7 +49,6 @@ func (rx *tmpl) request(msgtype uint8, sourceIP, destinationIP net.IP, requested
 				Hlen:      uint8(len(rx.hwaddr)),
 				Xid:       rx.xid,
 				Secs:      uint16(time.Now().Sub(rx.start).Seconds()),
-				Flags:     flags,
 				ClientMAC: rx.hwaddr,
 				ClientIP:  sourceIP,
 				Cookie:    dhcpmsg.DHCPCookie,
