@@ -97,6 +97,18 @@ func OptionRequestedIP(ip net.IP) DHCPOpt {
 	return optIP(OptRequestedIP, ip)
 }
 
+func OptionMaxMessageSize(size uint16) DHCPOpt {
+	return DHCPOpt{Option: OptMaxMessageSize, Data: []byte{byte(size >> 8), byte(size & 0xFF)}}
+}
+
+func OptionClientIdentifier(hwaddr [6]byte) DHCPOpt {
+	id := make([]byte, len(hwaddr)+1)
+	id[0] = 0x01
+	copy(id[1:], hwaddr[0:])
+
+	return DHCPOpt{Option: OptClientIdentifier, Data: id}
+}
+
 func optIP(ot uint8, ip net.IP) DHCPOpt {
 	b := make([]byte, 4)
 	if x := ip.To4(); x != nil {
