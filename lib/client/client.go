@@ -30,8 +30,8 @@ const (
 )
 
 const (
-	minLeaseDuration = time.Second * 10
-	maxLeaseDuration = time.Second * 1200
+	minLeaseDuration = 10 * time.Second
+	maxLeaseDuration = 30 * time.Minute
 )
 
 type boundDeadlines struct {
@@ -100,7 +100,7 @@ func (dx *dclient) Run() error {
 			// fixme: this must not use the target IP.
 			dx.l.Printf("%s: Is in state rebinding until %s\n", dx.iface.Name, dx.boundDeadlines.tx)
 			tmpl := msgtmpl.New(dx.iface, xid)
-			rq := func() []byte { return tmpl.RequestRebinding(dx.lastMsg.YourIP, dx.lastOpts.ServerIdentifier) }
+			rq := func() []byte { return tmpl.RequestRebinding(dx.lastMsg.YourIP) }
 			if lm, lo, p := dx.advanceState(dx.boundDeadlines.tx, verifyRebindingAck(dx.lastMsg, xid), rq); p {
 				dx.state = stateIfconfig
 				dx.lastMsg = lm
