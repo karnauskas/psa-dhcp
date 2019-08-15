@@ -10,7 +10,6 @@ type tmpl struct {
 	hostname string
 	start    time.Time
 	xid      uint32
-	lastSecs uint16
 	hwaddr   [6]byte
 }
 

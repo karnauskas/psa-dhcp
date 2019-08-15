@@ -3,19 +3,28 @@ package msgtmpl
 import (
 	"math/rand"
 	"net"
+	"time"
 
 	"gitlab.com/adrian_blx/psa-dhcp/lib/dhcpmsg"
 	"gitlab.com/adrian_blx/psa-dhcp/lib/layer"
 )
 
+var (
+	ipNone     = net.IPv4(0, 0, 0, 0)
+	ipBcast    = net.IPv4(255, 255, 255, 255)
+	maxMsgSize = uint16(1500)
+)
+
 func (rx *tmpl) RequestSelecting(requestedIP, serverIdentifier net.IP) []byte {
-	return rx.request(net.IPv4(0, 0, 0, 0), net.IPv4(255, 255, 255, 255),
+	return rx.request(dhcpmsg.MsgTypeRequest, net.IPv4(0, 0, 0, 0), net.IPv4(255, 255, 255, 255),
 		&requestedIP, &serverIdentifier)
 }
 
-func (rx *tmpl) request(sourceIP, destinationIP net.IP, requestedIP, serverIdentifier *net.IP) []byte {
+func (rx *tmpl) request(msgtype uint8, sourceIP, destinationIP net.IP, requestedIP, serverIdentifier *net.IP) []byte {
 	msgopts := []dhcpmsg.DHCPOpt{
-		dhcpmsg.OptionType(dhcpmsg.MsgTypeRequest),
+		dhcpmsg.OptionType(msgtype),
+		dhcpmsg.OptionClientIdentifier(rx.hwaddr),
+		dhcpmsg.OptionMaxMessageSize(maxMsgSize),
 		dhcpmsg.OptionHostname(rx.hostname),
 	}
 	if requestedIP != nil {
@@ -23,6 +32,11 @@ func (rx *tmpl) request(sourceIP, destinationIP net.IP, requestedIP, serverIdent
 	}
 	if serverIdentifier != nil {
 		msgopts = append(msgopts, dhcpmsg.OptionServerIdentifier(*serverIdentifier))
+	}
+
+	var flags uint16
+	if sourceIP.Equal(ipNone) {
+		flags |= dhcpmsg.FlagBroadcast
 	}
 
 	pl := layer.IPv4{
@@ -39,8 +53,8 @@ func (rx *tmpl) request(sourceIP, destinationIP net.IP, requestedIP, serverIdent
 				Htype:     dhcpmsg.HtypeIEEE802,
 				Hlen:      uint8(len(rx.hwaddr)),
 				Xid:       rx.xid,
-				Secs:      rx.lastSecs,
-				Flags:     dhcpmsg.FlagBroadcast, // We always send to 255.255.255.255.
+				Secs:      uint16(time.Now().Sub(rx.start).Seconds()),
+				Flags:     flags,
 				ClientMAC: rx.hwaddr,
 				ClientIP:  sourceIP,
 				Cookie:    dhcpmsg.DHCPCookie,
