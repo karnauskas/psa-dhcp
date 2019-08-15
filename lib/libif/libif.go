@@ -42,6 +42,7 @@ func Unconfigure(iface *net.Interface) error {
 	return lerr
 }
 
+// DefaultRoute returns the currently configured IPv4 route.
 func DefaultRoute(iface *net.Interface) (net.IP, error) {
 	c := exec.Command("ip", "-4", "route", "list", "0/0", "dev", iface.Name)
 	out, err := c.CombinedOutput()
@@ -59,6 +60,7 @@ func DefaultRoute(iface *net.Interface) (net.IP, error) {
 	return net.IP{}, fmt.Errorf("failed to match IP in route output")
 }
 
+// SetIface applies an interface configuration.
 func SetIface(c Ifconfig) error {
 	lft := fmt.Sprintf("%d", int(c.LeaseDuration.Seconds()))
 

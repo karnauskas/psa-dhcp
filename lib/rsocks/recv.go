@@ -10,10 +10,12 @@ type rrsock struct {
 	fd int
 }
 
+// GetIPRecvSocket returns a raw socket for receiving IP traffic.
 func GetIPRecvSock(iface *net.Interface) (*os.File, error) {
 	return getRecvSock(iface, htons(syscall.ETH_P_IP))
 }
 
+// GetARPRecvSock returns a raw socket for receiving ARP traffic.
 func GetARPRecvSock(iface *net.Interface) (*os.File, error) {
 	return getRecvSock(iface, htons(syscall.ETH_P_ARP))
 }

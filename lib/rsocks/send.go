@@ -14,10 +14,12 @@ var (
 	bcastAddr = [6]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
 )
 
+// GetIPSendSock returns a raw socket for sending broadcast IP traffic.
 func GetIPSendSock(iface *net.Interface) (*rssock, error) {
 	return getSendSock(iface, htons(syscall.ETH_P_IP), bcastAddr)
 }
 
+// GetARPSendSock returns a raw socket for broadcasting ARP requests.
 func GetARPSendSock(iface *net.Interface) (*rssock, error) {
 	return getSendSock(iface, htons(syscall.ETH_P_ARP), bcastAddr)
 }
@@ -30,7 +32,6 @@ func getSendSock(iface *net.Interface, proto uint16, hwaddr [6]byte) (*rssock, e
 
 	var sllHwaddr [8]byte
 	copy(sllHwaddr[0:], hwaddr[0:])
-
 	sll := &syscall.SockaddrLinklayer{
 		Protocol: proto,
 		Halen:    uint8(len(hwaddr)),

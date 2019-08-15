@@ -49,23 +49,3 @@ func DecodeARP(b []byte) (*ARP, error) {
 	}
 	return arp, nil
 }
-
-/*
-func DecodeUDP(b []byte) (*UDP, error) {
-	plen := len(b)
-	if plen < udpHlen {
-		return nil, fmt.Errorf("short udp")
-	}
-	tlen := int(binary.BigEndian.Uint16(b[4:]))
-	if tlen != plen {
-		return nil, fmt.Errorf("truncated udp")
-	}
-
-	udp := &UDP{
-		SrcPort: binary.BigEndian.Uint16(b[0:]),
-		DstPort: binary.BigEndian.Uint16(b[2:]),
-		Data:    b[udpHlen:],
-	}
-	return udp, nil
-}
-*/
