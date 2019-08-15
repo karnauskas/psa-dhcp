@@ -47,9 +47,11 @@ func TestDecodeOptions(t *testing.T) {
 			name: "ints",
 			data: []DHCPOpt{
 				{Option: OptMessageType, Data: []byte{0xfe}},
+				{Option: OptMaxMessageSize, Data: []byte{0x15, 0xdc}},
 			},
 			want: DecodedOptions{
-				MessageType: 254,
+				MessageType:    254,
+				MaxMessageSize: 0x15dc,
 			},
 		}, {
 			name: "strings",

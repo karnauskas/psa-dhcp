@@ -38,6 +38,7 @@ const (
 	OptMessageType        = 53
 	OptServerIdentifier   = 54
 	OptMessage            = 56
+	OptMaxMessageSize     = 57
 	OptRenewalTime        = 58
 	OptRebindTime         = 59
 	OptClientIdentifier   = 61

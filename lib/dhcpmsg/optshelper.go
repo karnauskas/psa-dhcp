@@ -15,6 +15,7 @@ type DecodedOptions struct {
 	RequestedIP        net.IP
 	IPAddressLeaseTime time.Duration
 	MessageType        uint8
+	MaxMessageSize     uint16
 	ServerIdentifier   net.IP
 	Message            string
 	RenewalTime        time.Duration
@@ -42,6 +43,8 @@ func DecodeOptions(opts []DHCPOpt) DecodedOptions {
 			d.IPAddressLeaseTime = toDuration(o.Data)
 		case OptMessageType:
 			d.MessageType = toUint8(o.Data)
+		case OptMaxMessageSize:
+			d.MaxMessageSize = toUint16(o.Data)
 		case OptServerIdentifier:
 			d.ServerIdentifier = toV4(o.Data)
 		case OptMessage:
@@ -60,6 +63,13 @@ func DecodeOptions(opts []DHCPOpt) DecodedOptions {
 func toUint8(x []byte) (v uint8) {
 	if len(x) == 1 {
 		v = uint8(x[0])
+	}
+	return
+}
+
+func toUint16(x []byte) (v uint16) {
+	if len(x) == 2 {
+		v = uint16(x[0])<<8 | uint16(x[1])
 	}
 	return
 }
