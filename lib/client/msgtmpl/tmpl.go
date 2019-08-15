@@ -15,9 +15,8 @@ type tmpl struct {
 
 func New(iface *net.Interface, xid uint32) tmpl {
 	t := tmpl{
-		start:    time.Now(),
-		hostname: "unknown",
-		xid:      xid,
+		start: time.Now(),
+		xid:   xid,
 	}
 	if hn, err := os.Hostname(); err == nil {
 		t.hostname = hn

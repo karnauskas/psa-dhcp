@@ -25,7 +25,9 @@ func (rx *tmpl) request(msgtype uint8, sourceIP, destinationIP net.IP, requested
 		dhcpmsg.OptionType(msgtype),
 		dhcpmsg.OptionClientIdentifier(rx.hwaddr),
 		dhcpmsg.OptionMaxMessageSize(maxMsgSize),
-		dhcpmsg.OptionHostname(rx.hostname),
+	}
+	if rx.hostname != "" {
+		msgopts = append(msgopts, dhcpmsg.OptionHostname(rx.hostname))
 	}
 	if requestedIP != nil {
 		msgopts = append(msgopts, dhcpmsg.OptionRequestedIP(*requestedIP))
