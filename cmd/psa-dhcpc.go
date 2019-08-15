@@ -4,8 +4,10 @@ import (
 	"context"
 	"flag"
 	"log"
+	"math/rand"
 	"net"
 	"os"
+	"time"
 
 	"gitlab.com/adrian_blx/psa-dhcp/lib/client"
 )
@@ -16,6 +18,8 @@ var (
 
 func main() {
 	flag.Parse()
+
+	rand.Seed(time.Now().Unix())
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
