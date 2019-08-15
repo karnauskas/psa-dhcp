@@ -15,11 +15,6 @@ var (
 	maxMsgSize = uint16(1500)
 )
 
-func (rx *tmpl) RequestSelecting(requestedIP, serverIdentifier net.IP) []byte {
-	return rx.request(dhcpmsg.MsgTypeRequest, net.IPv4(0, 0, 0, 0), net.IPv4(255, 255, 255, 255),
-		&requestedIP, &serverIdentifier)
-}
-
 func (rx *tmpl) request(msgtype uint8, sourceIP, destinationIP net.IP, requestedIP, serverIdentifier *net.IP) []byte {
 	msgopts := []dhcpmsg.DHCPOpt{
 		dhcpmsg.OptionType(msgtype),
