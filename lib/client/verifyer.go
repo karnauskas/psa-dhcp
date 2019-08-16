@@ -2,6 +2,7 @@ package client
 
 import (
 	"net"
+	"time"
 
 	"gitlab.com/adrian_blx/psa-dhcp/lib/dhcpmsg"
 )
@@ -89,6 +90,16 @@ func verifyCommon() func(uint32, dhcpmsg.Message, dhcpmsg.DecodedOptions) bool {
 			m.YourIP.Equal(ipBcast) ||
 			m.NextIP.Equal(ipInvalid) ||
 			m.NextIP.Equal(ipBcast) {
+			return false
+		}
+		if opt.RenewalTime < 1*time.Minute {
+			// Don't accept insane renewal times.
+			return false
+		}
+		if opt.RebindTime < opt.RenewalTime {
+			return false
+		}
+		if opt.IPAddressLeaseTime < opt.RebindTime {
 			return false
 		}
 		return true

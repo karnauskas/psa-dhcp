@@ -62,7 +62,6 @@ func New(ctx context.Context, l *log.Logger, iface *net.Interface) *dclient {
 func (dx *dclient) Run() error {
 	for {
 		xid := rand.Uint32()
-		dx.l.Printf("In state %d\n", dx.state)
 		switch dx.state {
 		case stateInitIface:
 			dx.runStateInitIface()
@@ -73,18 +72,20 @@ func (dx *dclient) Run() error {
 		case stateIfconfig:
 			dx.runStateIfconfig()
 		case stateBound:
-			// fixme: verify if the times make sense (x > a)
 			now := time.Now()
 			dx.boundDeadlines = boundDeadlines{
-				t1: now.Add(normalizeLease(dx.lastOpts.RenewalTime)),
-				t2: now.Add(normalizeLease(dx.lastOpts.RebindTime)),
-				tx: now.Add(normalizeLease(dx.lastOpts.IPAddressLeaseTime)),
+				t1: now.Add(dx.lastOpts.RenewalTime),
+				t2: now.Add(dx.lastOpts.RebindTime),
+				tx: now.Add(dx.lastOpts.IPAddressLeaseTime),
 			}
-			dx.l.Printf("Sleeping, deadlines are %+v\n", dx.boundDeadlines)
+			dx.l.Printf("-> Reached BOUND state. Will sleep until T1 expires.")
+			dx.l.Printf("T1 = %s", dx.boundDeadlines.t1)
+			dx.l.Printf("T2 = %s", dx.boundDeadlines.t2)
+			dx.l.Printf("TX = %s", dx.boundDeadlines.tx)
 			hackAbsoluteSleep(dx.ctx, dx.boundDeadlines.t1)
 			dx.state = stateRenewing
 		case stateRenewing:
-			dx.l.Printf("In state renewing until %s\n", dx.boundDeadlines.t2)
+			dx.l.Printf("-> Reached RENEWING state. Will try until %s", dx.boundDeadlines.t2)
 			// FIXME: This should be unicast with the correct mac.
 			tmpl := msgtmpl.New(dx.iface, xid)
 			rq := func() []byte { return tmpl.RequestRenewing(dx.lastMsg.YourIP, dx.lastOpts.ServerIdentifier) }
@@ -97,8 +98,7 @@ func (dx *dclient) Run() error {
 				dx.state = stateRebinding
 			}
 		case stateRebinding:
-			// fixme: this must not use the target IP.
-			dx.l.Printf("In state rebinding until %s\n", dx.boundDeadlines.tx)
+			dx.l.Printf("-> Reached REBINDING state. Will try until %s", dx.boundDeadlines.tx)
 			tmpl := msgtmpl.New(dx.iface, xid)
 			rq := func() []byte { return tmpl.RequestRebinding(dx.lastMsg.YourIP) }
 			if lm, lo, p := dx.advanceState(dx.boundDeadlines.tx, verifyRebindingAck(dx.lastMsg, xid), rq); p {
@@ -163,8 +163,7 @@ func (dx *dclient) advanceState(deadline time.Time, vrfy vrfyFunc, sender sender
 	ctx, cancel := context.WithDeadline(dx.ctx, deadline)
 	defer cancel()
 
-	dx.l.Printf("advanceState until %s\n", deadline)
-
+	dx.l.Printf("waiting for valid reply until %s", deadline)
 	go sendMessage(ctx, dx.iface, sender)
 	msg, opts, err := catchReply(ctx, dx.iface, vrfy)
 
