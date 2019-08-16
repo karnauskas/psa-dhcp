@@ -15,7 +15,7 @@ var (
 	maxMsgSize = uint16(1500)
 )
 
-func (rx *tmpl) request(msgtype uint8, sourceIP, destinationIP net.IP, requestedIP, serverIdentifier *net.IP) []byte {
+func (rx *tmpl) request(msgtype uint8, sourceIP, destinationIP, requestedIP, serverIdentifier net.IP) []byte {
 	msgopts := []dhcpmsg.DHCPOpt{
 		dhcpmsg.OptionType(msgtype),
 		dhcpmsg.OptionClientIdentifier(rx.hwaddr),
@@ -25,10 +25,10 @@ func (rx *tmpl) request(msgtype uint8, sourceIP, destinationIP net.IP, requested
 		msgopts = append(msgopts, dhcpmsg.OptionHostname(rx.hostname))
 	}
 	if requestedIP != nil {
-		msgopts = append(msgopts, dhcpmsg.OptionRequestedIP(*requestedIP))
+		msgopts = append(msgopts, dhcpmsg.OptionRequestedIP(requestedIP))
 	}
 	if serverIdentifier != nil {
-		msgopts = append(msgopts, dhcpmsg.OptionServerIdentifier(*serverIdentifier))
+		msgopts = append(msgopts, dhcpmsg.OptionServerIdentifier(serverIdentifier))
 	}
 
 	pl := layer.IPv4{

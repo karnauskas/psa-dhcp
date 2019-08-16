@@ -47,7 +47,7 @@ func RequestSelecting(iface *net.Interface, requestedIP, serverIdentifier net.IP
 	// The client is still unconfigured but picked a server and has an IP it attempts to request.
 	t := create(iface)
 	return func() ([]byte, net.IP, net.IP) {
-		return t.request(dhcpmsg.MsgTypeRequest, ipNone, ipBcast, &requestedIP, &serverIdentifier), nil, nil
+		return t.request(dhcpmsg.MsgTypeRequest, ipNone, ipBcast, requestedIP, serverIdentifier), nil, nil
 	}, t.xid
 }
 
