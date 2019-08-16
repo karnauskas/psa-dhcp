@@ -1,12 +1,14 @@
 package client
 
 import (
+	"bytes"
 	"context"
 	"log"
 	"math/rand"
 	"net"
 	"time"
 
+	"gitlab.com/adrian_blx/psa-dhcp/lib/client/arpping"
 	"gitlab.com/adrian_blx/psa-dhcp/lib/client/msgtmpl"
 	"gitlab.com/adrian_blx/psa-dhcp/lib/dhcpmsg"
 	"gitlab.com/adrian_blx/psa-dhcp/lib/libif"
@@ -19,6 +21,8 @@ const (
 	stateInit
 	// Selects a dhcp server via DHCPREQUEST.
 	stateSelecting
+	// Verify the current config by sending an ARP ping
+	stateArpCheck
 	// Configures the OS with the received configuration.
 	stateIfconfig
 	// We have a lease and are sleeping.
@@ -69,6 +73,8 @@ func (dx *dclient) Run() error {
 			dx.runStateInit()
 		case stateSelecting:
 			dx.runStateSelecting()
+		case stateArpCheck:
+			dx.runStateArpCheck()
 		case stateIfconfig:
 			dx.runStateIfconfig()
 		case stateBound:
@@ -91,7 +97,7 @@ func (dx *dclient) Run() error {
 			rq := func() []byte { return tmpl.RequestRenewing(dx.lastMsg.YourIP, dx.lastOpts.ServerIdentifier) }
 
 			if lm, lo, p := dx.advanceState(dx.boundDeadlines.t2, verifyRenewAck(dx.lastMsg, xid), rq); p {
-				dx.state = stateIfconfig
+				dx.state = stateArpCheck
 				dx.lastMsg = lm
 				dx.lastOpts = lo
 			} else {
@@ -102,7 +108,7 @@ func (dx *dclient) Run() error {
 			tmpl := msgtmpl.New(dx.iface, xid)
 			rq := func() []byte { return tmpl.RequestRebinding(dx.lastMsg.YourIP) }
 			if lm, lo, p := dx.advanceState(dx.boundDeadlines.tx, verifyRebindingAck(dx.lastMsg, xid), rq); p {
-				dx.state = stateIfconfig
+				dx.state = stateArpCheck
 				dx.lastMsg = lm
 				dx.lastOpts = lo
 			} else {
@@ -163,7 +169,7 @@ func (dx *dclient) advanceState(deadline time.Time, vrfy vrfyFunc, sender sender
 	ctx, cancel := context.WithDeadline(dx.ctx, deadline)
 	defer cancel()
 
-	dx.l.Printf("waiting for valid reply until %s", deadline)
+	dx.l.Printf("  ==> waiting for valid reply until %s", deadline)
 	go sendMessage(ctx, dx.iface, sender)
 	msg, opts, err := catchReply(ctx, dx.iface, vrfy)
 
@@ -210,7 +216,7 @@ func (dx *dclient) runStateSelecting() {
 	tmpl := msgtmpl.New(dx.iface, xid)
 	rq := func() []byte { return tmpl.RequestSelecting(dx.lastMsg.YourIP, dx.lastMsg.NextIP) }
 	if lm, lo, p := dx.advanceState(time.Now().Add(time.Minute), verifySelectingAck(dx.lastMsg, xid), rq); p {
-		dx.state = stateIfconfig
+		dx.state = stateArpCheck
 		dx.lastMsg = lm
 		dx.lastOpts = lo
 	} else {
@@ -223,13 +229,25 @@ func (dx *dclient) runStateIfconfig() {
 	nc := dx.currentNetconfig()
 	dx.l.Printf("Configuring interface to use IP %s/%d -> %s\n", nc.IP, nc.Cidr, nc.Router)
 	if err := libif.SetIface(nc); err != nil {
-		dx.l.Printf("Unexpected error while configuring interface, falling back to INIT in 30 sec! (error was: %v)\n", err)
-		dx.state = stateInitIface
-
-		// Sleep with context to not block the whole task.
-		fctx, _ := context.WithTimeout(dx.ctx, time.Second*30)
-		<-fctx.Done()
+		dx.panicReset("Unexpected error while configuring interface, falling back to INIT in 30 sec! (error was: %v)\n", err)
 	} else {
 		dx.state = stateBound
 	}
+}
+
+func (dx *dclient) runStateArpCheck() {
+	dx.l.Printf("Running ARPING for %s\n", dx.lastMsg.YourIP)
+	mac, err := arpping.Ping(dx.ctx, dx.iface, net.IPv4(0, 0, 0, 0), dx.lastMsg.YourIP)
+	if err == nil && !bytes.Equal(mac, dx.iface.HardwareAddr) {
+		dx.panicReset("IP %v is already in use by %v", dx.lastMsg.YourIP, mac)
+	} else {
+		dx.state = stateIfconfig
+	}
+}
+
+func (dx *dclient) panicReset(f string, args ...interface{}) {
+	dx.l.Printf("PANIC RESET: "+f, args...)
+	dx.state = stateInitIface
+	fctx, _ := context.WithTimeout(dx.ctx, time.Second*30)
+	<-fctx.Done()
 }

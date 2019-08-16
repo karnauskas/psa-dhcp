@@ -10,7 +10,7 @@ import (
 )
 
 func Ping(ctx context.Context, iface *net.Interface, src, dst net.IP) ([]byte, error) {
-	actx, acancel := context.WithTimeout(ctx, time.Second*5)
+	actx, acancel := context.WithTimeout(ctx, 200*time.Millisecond)
 	defer acancel()
 
 	go sendARPPing(actx, iface, src, dst)
