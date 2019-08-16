@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"log"
-	"math/rand"
 	"net"
 	"time"
 
@@ -65,7 +64,6 @@ func New(ctx context.Context, l *log.Logger, iface *net.Interface) *dclient {
 
 func (dx *dclient) Run() error {
 	for {
-		xid := rand.Uint32()
 		switch dx.state {
 		case stateInitIface:
 			dx.runStateInitIface()
@@ -93,9 +91,7 @@ func (dx *dclient) Run() error {
 		case stateRenewing:
 			dx.l.Printf("-> Reached RENEWING state. Will try until %s", dx.boundDeadlines.t2)
 			// FIXME: This should be unicast with the correct mac.
-			tmpl := msgtmpl.New(dx.iface, xid)
-			rq := func() []byte { return tmpl.RequestRenewing(dx.lastMsg.YourIP, dx.lastOpts.ServerIdentifier) }
-
+			rq, xid := msgtmpl.RequestRenewing(dx.iface, dx.lastMsg.YourIP, dx.lastOpts.ServerIdentifier)
 			if lm, lo, p := dx.advanceState(dx.boundDeadlines.t2, verifyRenewAck(dx.lastMsg, xid), rq); p {
 				dx.state = stateArpCheck
 				dx.lastMsg = lm
@@ -105,8 +101,7 @@ func (dx *dclient) Run() error {
 			}
 		case stateRebinding:
 			dx.l.Printf("-> Reached REBINDING state. Will try until %s", dx.boundDeadlines.tx)
-			tmpl := msgtmpl.New(dx.iface, xid)
-			rq := func() []byte { return tmpl.RequestRebinding(dx.lastMsg.YourIP) }
+			rq, xid := msgtmpl.RequestRebinding(dx.iface, dx.lastMsg.YourIP)
 			if lm, lo, p := dx.advanceState(dx.boundDeadlines.tx, verifyRebindingAck(dx.lastMsg, xid), rq); p {
 				dx.state = stateArpCheck
 				dx.lastMsg = lm
@@ -198,9 +193,8 @@ func (dx *dclient) runStateInitIface() {
 func (dx *dclient) runStateInit() {
 	dx.l.Printf("Sending DHCPDISCOVER broadcast\n")
 
-	xid := rand.Uint32()
-	tmpl := msgtmpl.New(dx.iface, xid)
-	if lm, lo, p := dx.advanceState(time.Now().Add(time.Minute), verifyOffer(xid), func() []byte { return tmpl.Discover() }); p {
+	rq, xid := msgtmpl.Discover(dx.iface)
+	if lm, lo, p := dx.advanceState(time.Now().Add(time.Minute), verifyOffer(xid), rq); p {
 		dx.state = stateSelecting
 		dx.lastMsg = lm
 		dx.lastOpts = lo
@@ -212,9 +206,7 @@ func (dx *dclient) runStateInit() {
 func (dx *dclient) runStateSelecting() {
 	dx.l.Printf("Sending DHCPREQUEST for %s to %s\n", dx.lastMsg.YourIP, dx.lastMsg.NextIP)
 
-	xid := rand.Uint32()
-	tmpl := msgtmpl.New(dx.iface, xid)
-	rq := func() []byte { return tmpl.RequestSelecting(dx.lastMsg.YourIP, dx.lastMsg.NextIP) }
+	rq, xid := msgtmpl.RequestSelecting(dx.iface, dx.lastMsg.YourIP, dx.lastMsg.NextIP)
 	if lm, lo, p := dx.advanceState(time.Now().Add(time.Minute), verifySelectingAck(dx.lastMsg, xid), rq); p {
 		dx.state = stateArpCheck
 		dx.lastMsg = lm

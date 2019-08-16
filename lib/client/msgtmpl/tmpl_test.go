@@ -10,7 +10,6 @@ import (
 )
 
 var (
-	testXid        = uint32(9)
 	testSource     = net.IPv4(1, 2, 3, 9)
 	testIdentifier = net.IPv4(21, 23, 24, 25)
 	testIface      = net.Interface{HardwareAddr: []byte{1, 2, 3, 4, 5, 6}}
@@ -41,7 +40,6 @@ func TestDiscover(t *testing.T) {
 		// ClientIP must not
 		// Requested IP MUST
 		Msg: dhcpmsg.Message{
-			Xid:       testXid,
 			Op:        dhcpmsg.OpRequest,
 			Htype:     dhcpmsg.HtypeETHER,
 			Cookie:    dhcpmsg.DHCPCookie,
@@ -60,8 +58,10 @@ func TestDiscover(t *testing.T) {
 		},
 	}
 
-	tmpl := New(&testIface, testXid)
-	got, err := undo(tmpl.Discover())
+	rq, xid := Discover(&testIface)
+	want.Msg.Xid = xid
+
+	got, err := undo(rq())
 	if err != nil {
 		t.Errorf("TestRequestSelecting = %v, want nil err", err)
 	}
@@ -88,7 +88,6 @@ func TestRequestSelecing(t *testing.T) {
 		// ClientIP must not
 		// Requested IP MUST
 		Msg: dhcpmsg.Message{
-			Xid:       testXid,
 			Op:        dhcpmsg.OpRequest,
 			Htype:     dhcpmsg.HtypeETHER,
 			Cookie:    dhcpmsg.DHCPCookie,
@@ -109,8 +108,10 @@ func TestRequestSelecing(t *testing.T) {
 		},
 	}
 
-	tmpl := New(&testIface, testXid)
-	got, err := undo(tmpl.RequestSelecting(testSource, testIdentifier))
+	rq, xid := RequestSelecting(&testIface, testSource, testIdentifier)
+	want.Msg.Xid = xid
+
+	got, err := undo(rq())
 	if err != nil {
 		t.Errorf("TestRequestSelecting = %v, want nil err", err)
 	}
@@ -136,7 +137,6 @@ func TestRequestRenewing(t *testing.T) {
 		// requested IP MUST NOT
 		// ClientIP MUST
 		Msg: dhcpmsg.Message{
-			Xid:       testXid,
 			Op:        dhcpmsg.OpRequest,
 			Htype:     dhcpmsg.HtypeETHER,
 			Cookie:    dhcpmsg.DHCPCookie,
@@ -155,8 +155,10 @@ func TestRequestRenewing(t *testing.T) {
 		},
 	}
 
-	tmpl := New(&testIface, testXid)
-	got, err := undo(tmpl.RequestRenewing(testSource, testIdentifier))
+	rq, xid := RequestRenewing(&testIface, testSource, testIdentifier)
+	want.Msg.Xid = xid
+
+	got, err := undo(rq())
 	if err != nil {
 		t.Errorf("TestRequestRenewing = %v, want nil err", err)
 	}
@@ -181,7 +183,6 @@ func TestRequestRebinding(t *testing.T) {
 		// requested IP MUST NOT
 		// ClientIP MUST
 		Msg: dhcpmsg.Message{
-			Xid:       testXid,
 			Op:        dhcpmsg.OpRequest,
 			Htype:     dhcpmsg.HtypeETHER,
 			Cookie:    dhcpmsg.DHCPCookie,
@@ -200,8 +201,10 @@ func TestRequestRebinding(t *testing.T) {
 		},
 	}
 
-	tmpl := New(&testIface, testXid)
-	got, err := undo(tmpl.RequestRebinding(testSource))
+	rq, xid := RequestRebinding(&testIface, testSource)
+	want.Msg.Xid = xid
+
+	got, err := undo(rq())
 	if err != nil {
 		t.Errorf("TestRequestBinding = %v, want nil err", err)
 	}
