@@ -36,8 +36,9 @@ func Decode(b []byte) (*Message, error) {
 	copy(msg.BootFilename[:], b[108:])
 
 	c := dhcpMinLen
+	var opt byte
 	for c < plen {
-		opt := b[c]
+		opt = b[c]
 		if c++; opt == 0x00 {
 			continue
 		}
@@ -51,7 +52,7 @@ func Decode(b []byte) (*Message, error) {
 		msg.Options = append(msg.Options, DHCPOpt{Option: opt, Data: b[c : c+olen]})
 		c += olen
 	}
-	if c != plen {
+	if opt != 0xff {
 		return nil, fmt.Errorf("truncated options")
 	}
 	return msg, nil
