@@ -90,7 +90,6 @@ func (dx *dclient) Run() error {
 			dx.state = stateRenewing
 		case stateRenewing:
 			dx.l.Printf("-> Reached RENEWING state. Will try until %s", dx.boundDeadlines.t2)
-			// FIXME: This should be unicast with the correct mac.
 			rq, xid := msgtmpl.RequestRenewing(dx.iface, dx.lastMsg.YourIP, dx.lastOpts.ServerIdentifier)
 			if lm, lo, p := dx.advanceState(dx.boundDeadlines.t2, verifyRenewAck(dx.lastMsg, xid), rq); p {
 				dx.state = stateArpCheck

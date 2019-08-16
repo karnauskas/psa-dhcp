@@ -6,16 +6,34 @@ import (
 	"net"
 	"time"
 
+	"gitlab.com/adrian_blx/psa-dhcp/lib/client/arpping"
 	"gitlab.com/adrian_blx/psa-dhcp/lib/dhcpmsg"
 	"gitlab.com/adrian_blx/psa-dhcp/lib/layer"
 	"gitlab.com/adrian_blx/psa-dhcp/lib/rsocks"
 )
 
-type senderFunc func() []byte
+type senderFunc func() ([]byte, net.IP, net.IP)
+
+type ssock interface {
+	Close() error
+	Write([]byte) (int, error)
+}
+
+func sendSocket(ctx context.Context, iface *net.Interface, sender senderFunc) (ssock, error) {
+	_, src, dst := sender()
+	if src != nil && dst != nil {
+		for i := 0; i < 5 && ctx.Err() == nil; i++ {
+			if hwaddr, err := arpping.Ping(ctx, iface, src, dst); err == nil {
+				return rsocks.GetUnicastSendSock(iface, hwaddr)
+			}
+		}
+	}
+	return rsocks.GetIPSendSock(iface)
+}
 
 // sendMessage invokes the supplied 'sendFunc' function to send a message on the selected interface.
 func sendMessage(ctx context.Context, iface *net.Interface, sender senderFunc) error {
-	s, err := rsocks.GetIPSendSock(iface)
+	s, err := sendSocket(ctx, iface, sender)
 	if err != nil {
 		return err
 	}
@@ -24,7 +42,8 @@ func sendMessage(ctx context.Context, iface *net.Interface, sender senderFunc) e
 	barrier := time.Second * 45
 	delay := time.Millisecond * 700
 	for {
-		if _, err := s.Write(sender()); err != nil {
+		b, _, _ := sender()
+		if _, err := s.Write(b); err != nil {
 			return err
 		}
 		if delay < barrier {

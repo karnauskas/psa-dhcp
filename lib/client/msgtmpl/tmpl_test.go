@@ -60,8 +60,9 @@ func TestDiscover(t *testing.T) {
 
 	rq, xid := Discover(&testIface)
 	want.Msg.Xid = xid
+	data, _, _ := rq()
 
-	got, err := undo(rq())
+	got, err := undo(data)
 	if err != nil {
 		t.Errorf("TestRequestSelecting = %v, want nil err", err)
 	}
@@ -110,8 +111,9 @@ func TestRequestSelecing(t *testing.T) {
 
 	rq, xid := RequestSelecting(&testIface, testSource, testIdentifier)
 	want.Msg.Xid = xid
+	data, _, _ := rq()
 
-	got, err := undo(rq())
+	got, err := undo(data)
 	if err != nil {
 		t.Errorf("TestRequestSelecting = %v, want nil err", err)
 	}
@@ -157,8 +159,9 @@ func TestRequestRenewing(t *testing.T) {
 
 	rq, xid := RequestRenewing(&testIface, testSource, testIdentifier)
 	want.Msg.Xid = xid
+	data, _, _ := rq()
 
-	got, err := undo(rq())
+	got, err := undo(data)
 	if err != nil {
 		t.Errorf("TestRequestRenewing = %v, want nil err", err)
 	}
@@ -203,8 +206,9 @@ func TestRequestRebinding(t *testing.T) {
 
 	rq, xid := RequestRebinding(&testIface, testSource)
 	want.Msg.Xid = xid
+	data, _, _ := rq()
 
-	got, err := undo(rq())
+	got, err := undo(data)
 	if err != nil {
 		t.Errorf("TestRequestBinding = %v, want nil err", err)
 	}

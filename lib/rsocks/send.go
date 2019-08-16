@@ -19,6 +19,13 @@ func GetIPSendSock(iface *net.Interface) (*rssock, error) {
 	return getSendSock(iface, htons(syscall.ETH_P_IP), bcastAddr)
 }
 
+// GetUnicastSendSock returns a new raw socket for sending unicast IP traffic.
+func GetUnicastSendSock(iface *net.Interface, hwaddr net.HardwareAddr) (*rssock, error) {
+	var mac [6]byte
+	copy(mac[:], hwaddr[0:6])
+	return getSendSock(iface, htons(syscall.ETH_P_IP), mac)
+}
+
 // GetARPSendSock returns a raw socket for broadcasting ARP requests.
 func GetARPSendSock(iface *net.Interface) (*rssock, error) {
 	return getSendSock(iface, htons(syscall.ETH_P_ARP), bcastAddr)
