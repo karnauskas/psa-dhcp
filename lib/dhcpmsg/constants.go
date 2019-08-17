@@ -36,6 +36,7 @@ const (
 	OptIPAddressLeaseTime = 51
 	OptMessageType        = 53
 	OptServerIdentifier   = 54
+	OptParametersList     = 55
 	OptMessage            = 56
 	OptMaxMessageSize     = 57
 	OptRenewalTime        = 58

@@ -125,5 +125,5 @@ func OptionParametersList(params ...uint8) DHCPOpt {
 	for i, p := range params {
 		l[i] = p
 	}
-	return DHCPOpt{Option: OptParamsList, Data: l}
+	return DHCPOpt{Option: OptParametersList, Data: l}
 }

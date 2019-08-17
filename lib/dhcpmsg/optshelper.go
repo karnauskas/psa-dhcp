@@ -21,6 +21,7 @@ type DecodedOptions struct {
 	RenewalTime        time.Duration
 	RebindTime         time.Duration
 	ClientIdentifier   string
+	ParametersList     []uint8
 }
 
 func DecodeOptions(opts []DHCPOpt) DecodedOptions {
@@ -55,6 +56,9 @@ func DecodeOptions(opts []DHCPOpt) DecodedOptions {
 			d.RebindTime = toDuration(o.Data)
 		case OptClientIdentifier:
 			d.ClientIdentifier = toString(o.Data)
+		case OptParametersList:
+			d.ParametersList = o.Data
+
 		}
 	}
 	return d
