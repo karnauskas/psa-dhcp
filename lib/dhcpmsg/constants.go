@@ -22,6 +22,7 @@ const (
 	MsgTypeOffer    = 2
 	MsgTypeRequest  = 3
 	MsgTypeAck      = 5
+	MsgTypeNack     = 6
 )
 
 const (

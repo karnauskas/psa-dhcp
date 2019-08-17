@@ -60,18 +60,22 @@ func (dx *dclient) runStateRenewing(nextState, failState int) {
 		dx.lastMsg = lm
 		dx.lastOpts = lo
 		dx.state = nextState
+	} else if err == errWasNack {
+		dx.panicReset("received NACK during renew")
 	} else {
 		dx.state = failState
 	}
 }
 
 func (dx *dclient) runStateRebinding(nextState, failState int) {
-	dx.l.Printf("Rebindign lease, will try until %s", dx.boundDeadlines.tx)
+	dx.l.Printf("Rebinding lease, will try until %s", dx.boundDeadlines.tx)
 	rq, xid := msgtmpl.RequestRebinding(dx.iface, dx.lastMsg.YourIP)
 	if lm, lo, err := dx.advanceState(dx.boundDeadlines.tx, vy.VerifyRebindingAck(dx.lastMsg, dx.lastOpts, xid), rq); err == nil {
 		dx.lastMsg = lm
 		dx.lastOpts = lo
 		dx.state = nextState
+	} else if err == errWasNack {
+		dx.panicReset("received NACK during rebind")
 	} else {
 		dx.state = failState
 	}
