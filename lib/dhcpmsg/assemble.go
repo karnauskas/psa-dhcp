@@ -1,6 +1,7 @@
 package dhcpmsg
 
 import (
+	"hash/crc32"
 	"net"
 )
 
@@ -102,10 +103,12 @@ func OptionMaxMessageSize(size uint16) DHCPOpt {
 }
 
 func OptionClientIdentifier(hwaddr [6]byte) DHCPOpt {
-	id := make([]byte, len(hwaddr)+1)
-	id[0] = 0x01
-	copy(id[1:], hwaddr[0:])
-
+	id := make([]byte, 15)
+	setU32Int(id[1:5], crc32.ChecksumIEEE(hwaddr[0:])) // IAID
+	copy(id[9:15], hwaddr[0:6])
+	id[0] = 0xff // Type.
+	id[6] = 3    // Link layer without time
+	id[8] = 1    // Ethernet
 	return DHCPOpt{Option: OptClientIdentifier, Data: id}
 }
 
