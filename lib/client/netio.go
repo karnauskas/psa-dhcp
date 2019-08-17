@@ -1,6 +1,7 @@
 package client
 
 import (
+	"bytes"
 	"context"
 	"math/rand"
 	"net"
@@ -85,7 +86,8 @@ func catchReply(octx context.Context, iface *net.Interface, vrfy vrfyFunc) (dhcp
 		}
 		if v4.Protocol == 0x11 {
 			if udp, err := layer.DecodeUDP(v4.Data); err == nil && udp.DstPort == 68 {
-				if msg, err := dhcpmsg.Decode(udp.Data); err == nil {
+				if msg, err := dhcpmsg.Decode(udp.Data); err == nil && bytes.Equal(msg.ClientMAC[:], iface.HardwareAddr) {
+					// Fixme: we shouldn't check the client mac from the dhcp payload here, that should be done/filtered on the receiving sock via BPF.
 					opts := dhcpmsg.DecodeOptions(msg.Options)
 					if vrfy(*msg, opts) {
 						return *msg, opts, nil
