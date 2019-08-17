@@ -22,7 +22,7 @@ func (dx *dclient) runStateDiscovering(nextState int) {
 
 // runStateSelecting selects a dhcp server by *broadcasting* a DHCPREQUEST.
 func (dx *dclient) runStateSelecting(nextState, failState int) {
-	dx.l.Printf("Sending DHCPREQUEST for %s to %s\n", dx.lastMsg.YourIP, dx.lastOpts.ServerIdentifier)
+	dx.l.Printf("Accepting offer for IP %s from server %s\n", dx.lastMsg.YourIP, dx.lastOpts.ServerIdentifier)
 
 	rq, xid := msgtmpl.RequestSelecting(dx.iface, dx.lastMsg.YourIP, dx.lastOpts.ServerIdentifier)
 	if lm, lo, p := dx.advanceState(time.Now().Add(time.Minute), vy.VerifySelectingAck(dx.lastMsg, dx.lastOpts, xid), rq); p {
@@ -47,16 +47,14 @@ func (dx *dclient) runStateBound(nextState int) {
 		dx.boundDeadlines.t1 = now.Add(dx.lastOpts.RenewalTime)
 		dx.boundDeadlines.t2 = now.Add(dx.lastOpts.RebindTime)
 	}
-	dx.l.Printf("-> Reached BOUND state. Will sleep until T1 expires.")
-	dx.l.Printf("T1 = %s", dx.boundDeadlines.t1)
-	dx.l.Printf("T2 = %s", dx.boundDeadlines.t2)
-	dx.l.Printf("TX = %s", dx.boundDeadlines.tx)
+	dx.l.Printf("-> Lease is valid for %s", dx.boundDeadlines.tx.Sub(now))
+	dx.l.Printf("-> Renew will happen after %s, must rebind after %s", dx.boundDeadlines.t1.Sub(now), dx.boundDeadlines.t2.Sub(now))
 	hackAbsoluteSleep(dx.ctx, dx.boundDeadlines.t1)
 	dx.state = nextState
 }
 
 func (dx *dclient) runStateRenewing(nextState, failState int) {
-	dx.l.Printf("-> Reached RENEWING state. Will try until %s", dx.boundDeadlines.t2)
+	dx.l.Printf("Renewing lease, will try until %s", dx.boundDeadlines.t2)
 	rq, xid := msgtmpl.RequestRenewing(dx.iface, dx.lastMsg.YourIP, dx.lastOpts.ServerIdentifier)
 	if lm, lo, p := dx.advanceState(dx.boundDeadlines.t2, vy.VerifyRenewingAck(dx.lastMsg, dx.lastOpts, xid), rq); p {
 		dx.lastMsg = lm
@@ -68,7 +66,7 @@ func (dx *dclient) runStateRenewing(nextState, failState int) {
 }
 
 func (dx *dclient) runStateRebinding(nextState, failState int) {
-	dx.l.Printf("-> Reached REBINDING state. Will try until %s", dx.boundDeadlines.tx)
+	dx.l.Printf("Rebindign lease, will try until %s", dx.boundDeadlines.tx)
 	rq, xid := msgtmpl.RequestRebinding(dx.iface, dx.lastMsg.YourIP)
 	if lm, lo, p := dx.advanceState(dx.boundDeadlines.tx, vy.VerifyRebindingAck(dx.lastMsg, dx.lastOpts, xid), rq); p {
 		dx.lastMsg = lm
