@@ -105,7 +105,7 @@ func hackAbsoluteSleep(ctx context.Context, when time.Time) {
 	}
 }
 
-func (dx *dclient) advanceState(deadline time.Time, vrfy vrfyFunc, sender senderFunc) (dhcpmsg.Message, dhcpmsg.DecodedOptions, bool) {
+func (dx *dclient) advanceState(deadline time.Time, vrfy vrfyFunc, sender senderFunc) (dhcpmsg.Message, dhcpmsg.DecodedOptions, error) {
 	ctx, cancel := context.WithDeadline(dx.ctx, deadline)
 	defer cancel()
 
@@ -117,7 +117,7 @@ func (dx *dclient) advanceState(deadline time.Time, vrfy vrfyFunc, sender sender
 		// If there was an error, wait until the context expires (if we might have a
 		// sock setup error) to avoid flooding the line.
 		<-ctx.Done()
-		return msg, opts, false
+		return msg, opts, err
 	}
-	return msg, opts, true
+	return msg, opts, nil
 }

@@ -12,7 +12,7 @@ func (dx *dclient) runStateDiscovering(nextState int) {
 	dx.l.Printf("Sending DHCPDISCOVER broadcast\n")
 
 	rq, xid := msgtmpl.Discover(dx.iface)
-	if lm, lo, p := dx.advanceState(time.Now().Add(10*time.Minute), vy.VerifyOffer(xid), rq); p {
+	if lm, lo, err := dx.advanceState(time.Now().Add(10*time.Minute), vy.VerifyOffer(xid), rq); err == nil {
 		dx.lastMsg = lm
 		dx.lastOpts = lo
 		dx.state = nextState
@@ -25,7 +25,7 @@ func (dx *dclient) runStateSelecting(nextState, failState int) {
 	dx.l.Printf("Accepting offer for IP %s from server %s\n", dx.lastMsg.YourIP, dx.lastOpts.ServerIdentifier)
 
 	rq, xid := msgtmpl.RequestSelecting(dx.iface, dx.lastMsg.YourIP, dx.lastOpts.ServerIdentifier)
-	if lm, lo, p := dx.advanceState(time.Now().Add(time.Minute), vy.VerifySelectingAck(dx.lastMsg, dx.lastOpts, xid), rq); p {
+	if lm, lo, err := dx.advanceState(time.Now().Add(time.Minute), vy.VerifySelectingAck(dx.lastMsg, dx.lastOpts, xid), rq); err == nil {
 		dx.lastMsg = lm
 		dx.lastOpts = lo
 		dx.state = nextState
@@ -56,7 +56,7 @@ func (dx *dclient) runStateBound(nextState int) {
 func (dx *dclient) runStateRenewing(nextState, failState int) {
 	dx.l.Printf("Renewing lease, will try until %s", dx.boundDeadlines.t2)
 	rq, xid := msgtmpl.RequestRenewing(dx.iface, dx.lastMsg.YourIP, dx.lastOpts.ServerIdentifier)
-	if lm, lo, p := dx.advanceState(dx.boundDeadlines.t2, vy.VerifyRenewingAck(dx.lastMsg, dx.lastOpts, xid), rq); p {
+	if lm, lo, err := dx.advanceState(dx.boundDeadlines.t2, vy.VerifyRenewingAck(dx.lastMsg, dx.lastOpts, xid), rq); err == nil {
 		dx.lastMsg = lm
 		dx.lastOpts = lo
 		dx.state = nextState
@@ -68,7 +68,7 @@ func (dx *dclient) runStateRenewing(nextState, failState int) {
 func (dx *dclient) runStateRebinding(nextState, failState int) {
 	dx.l.Printf("Rebindign lease, will try until %s", dx.boundDeadlines.tx)
 	rq, xid := msgtmpl.RequestRebinding(dx.iface, dx.lastMsg.YourIP)
-	if lm, lo, p := dx.advanceState(dx.boundDeadlines.tx, vy.VerifyRebindingAck(dx.lastMsg, dx.lastOpts, xid), rq); p {
+	if lm, lo, err := dx.advanceState(dx.boundDeadlines.tx, vy.VerifyRebindingAck(dx.lastMsg, dx.lastOpts, xid), rq); err == nil {
 		dx.lastMsg = lm
 		dx.lastOpts = lo
 		dx.state = nextState
