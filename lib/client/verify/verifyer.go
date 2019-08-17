@@ -1,4 +1,4 @@
-package client
+package verify
 
 import (
 	"net"
@@ -12,12 +12,13 @@ var (
 	ipBcast   = net.IPv4(255, 255, 255, 255)
 )
 
-// verifyOffer verifies that this message was an offer reply with YourIP and a ServerIdentifier.
-func verifyOffer(xid uint32) func(dhcpmsg.Message, dhcpmsg.DecodedOptions) bool {
+// VerifyOffer verifies that this message was an offer reply with YourIP and a ServerIdentifier.
+func VerifyOffer(xid uint32) func(dhcpmsg.Message, dhcpmsg.DecodedOptions) bool {
 	return func(m dhcpmsg.Message, opt dhcpmsg.DecodedOptions) bool {
 		if opt.MessageType != dhcpmsg.MsgTypeOffer {
 			return false
 		}
+		// We don't have a server identifier yet, but need one, so make sure we get one.
 		if opt.ServerIdentifier.Equal(ipInvalid) ||
 			opt.ServerIdentifier.Equal(ipBcast) {
 			return false
@@ -26,16 +27,18 @@ func verifyOffer(xid uint32) func(dhcpmsg.Message, dhcpmsg.DecodedOptions) bool 
 	}
 }
 
-// verifySelectingAck checks the ACK message sent to a selecting DHCPREQUEST.
-func verifySelectingAck(lm dhcpmsg.Message, lopt dhcpmsg.DecodedOptions, xid uint32) func(dhcpmsg.Message, dhcpmsg.DecodedOptions) bool {
+// VerifySelectingAck checks the ACK message sent to a selecting DHCPREQUEST.
+func VerifySelectingAck(lm dhcpmsg.Message, lopt dhcpmsg.DecodedOptions, xid uint32) func(dhcpmsg.Message, dhcpmsg.DecodedOptions) bool {
 	return verifyGenAck(lm, lopt, xid)
 }
 
-func verifyRebindingAck(lm dhcpmsg.Message, lopt dhcpmsg.DecodedOptions, xid uint32) func(dhcpmsg.Message, dhcpmsg.DecodedOptions) bool {
+// VerifyRebindingAck checks the ACK message of a DHCPREQUEST while rebinding.
+func VerifyRebindingAck(lm dhcpmsg.Message, lopt dhcpmsg.DecodedOptions, xid uint32) func(dhcpmsg.Message, dhcpmsg.DecodedOptions) bool {
 	return verifyGenAck(lm, lopt, xid)
 }
 
-func verifyRenewAck(lm dhcpmsg.Message, lopt dhcpmsg.DecodedOptions, xid uint32) func(dhcpmsg.Message, dhcpmsg.DecodedOptions) bool {
+// VerifyRenewingAck checks the ACK message of a DHCPREQUEST while renewing.
+func VerifyRenewingAck(lm dhcpmsg.Message, lopt dhcpmsg.DecodedOptions, xid uint32) func(dhcpmsg.Message, dhcpmsg.DecodedOptions) bool {
 	return verifyGenAck(lm, lopt, xid)
 }
 

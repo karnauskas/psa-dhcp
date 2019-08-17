@@ -9,6 +9,7 @@ import (
 
 	"gitlab.com/adrian_blx/psa-dhcp/lib/client/arpping"
 	"gitlab.com/adrian_blx/psa-dhcp/lib/client/msgtmpl"
+	vy "gitlab.com/adrian_blx/psa-dhcp/lib/client/verify"
 	"gitlab.com/adrian_blx/psa-dhcp/lib/dhcpmsg"
 	"gitlab.com/adrian_blx/psa-dhcp/lib/libif"
 )
@@ -92,7 +93,7 @@ func (dx *dclient) Run() error {
 		case stateRenewing:
 			dx.l.Printf("-> Reached RENEWING state. Will try until %s", dx.boundDeadlines.t2)
 			rq, xid := msgtmpl.RequestRenewing(dx.iface, dx.lastMsg.YourIP, dx.lastOpts.ServerIdentifier)
-			if lm, lo, p := dx.advanceState(dx.boundDeadlines.t2, verifyRenewAck(dx.lastMsg, dx.lastOpts, xid), rq); p {
+			if lm, lo, p := dx.advanceState(dx.boundDeadlines.t2, vy.VerifyRenewingAck(dx.lastMsg, dx.lastOpts, xid), rq); p {
 				dx.state = stateArpCheck
 				dx.lastMsg = lm
 				dx.lastOpts = lo
@@ -102,7 +103,7 @@ func (dx *dclient) Run() error {
 		case stateRebinding:
 			dx.l.Printf("-> Reached REBINDING state. Will try until %s", dx.boundDeadlines.tx)
 			rq, xid := msgtmpl.RequestRebinding(dx.iface, dx.lastMsg.YourIP)
-			if lm, lo, p := dx.advanceState(dx.boundDeadlines.tx, verifyRebindingAck(dx.lastMsg, dx.lastOpts, xid), rq); p {
+			if lm, lo, p := dx.advanceState(dx.boundDeadlines.tx, vy.VerifyRebindingAck(dx.lastMsg, dx.lastOpts, xid), rq); p {
 				dx.state = stateArpCheck
 				dx.lastMsg = lm
 				dx.lastOpts = lo
@@ -184,7 +185,7 @@ func (dx *dclient) runStateInit() {
 	dx.l.Printf("Sending DHCPDISCOVER broadcast\n")
 
 	rq, xid := msgtmpl.Discover(dx.iface)
-	if lm, lo, p := dx.advanceState(time.Now().Add(10*time.Minute), verifyOffer(xid), rq); p {
+	if lm, lo, p := dx.advanceState(time.Now().Add(10*time.Minute), vy.VerifyOffer(xid), rq); p {
 		dx.state = stateSelecting
 		dx.lastMsg = lm
 		dx.lastOpts = lo
@@ -197,7 +198,7 @@ func (dx *dclient) runStateSelecting() {
 	dx.l.Printf("Sending DHCPREQUEST for %s to %s\n", dx.lastMsg.YourIP, dx.lastOpts.ServerIdentifier)
 
 	rq, xid := msgtmpl.RequestSelecting(dx.iface, dx.lastMsg.YourIP, dx.lastOpts.ServerIdentifier)
-	if lm, lo, p := dx.advanceState(time.Now().Add(time.Minute), verifySelectingAck(dx.lastMsg, dx.lastOpts, xid), rq); p {
+	if lm, lo, p := dx.advanceState(time.Now().Add(time.Minute), vy.VerifySelectingAck(dx.lastMsg, dx.lastOpts, xid), rq); p {
 		dx.state = stateArpCheck
 		dx.lastMsg = lm
 		dx.lastOpts = lo
