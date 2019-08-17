@@ -12,96 +12,70 @@ var (
 	ipBcast   = net.IPv4(255, 255, 255, 255)
 )
 
-// verifySelectingAck checks the ACK message sent to a selecting DHCPREQUEST.
-// We ensure that ClientIP, YourIP and NextIP are still set to the same value as in the previously received message.
-func verifySelectingAck(lm dhcpmsg.Message, xid uint32) func(dhcpmsg.Message, dhcpmsg.DecodedOptions) bool {
-	return func(m dhcpmsg.Message, opt dhcpmsg.DecodedOptions) bool {
-		if opt.MessageType != dhcpmsg.MsgTypeAck {
-			return false
-		}
-		if !lm.ClientIP.Equal(m.ClientIP) {
-			return false
-		}
-		if !lm.YourIP.Equal(m.YourIP) {
-			return false
-		}
-		if !lm.NextIP.Equal(m.NextIP) {
-			return false
-		}
-		// Options may differ, so we don't check them here.
-		return verifyCommon()(xid, m, opt)
-	}
-}
-
-func verifyRebindingAck(lm dhcpmsg.Message, xid uint32) func(dhcpmsg.Message, dhcpmsg.DecodedOptions) bool {
-	return func(m dhcpmsg.Message, opt dhcpmsg.DecodedOptions) bool {
-		if opt.MessageType != dhcpmsg.MsgTypeAck {
-			return false
-		}
-		if !lm.YourIP.Equal(m.YourIP) {
-			return false
-		}
-		if !lm.NextIP.Equal(m.NextIP) {
-			return false
-		}
-		return verifyCommon()(xid, m, opt)
-	}
-}
-
-func verifyRenewAck(lm dhcpmsg.Message, xid uint32) func(dhcpmsg.Message, dhcpmsg.DecodedOptions) bool {
-	return func(m dhcpmsg.Message, opt dhcpmsg.DecodedOptions) bool {
-		if opt.MessageType != dhcpmsg.MsgTypeAck {
-			return false
-		}
-		if !lm.YourIP.Equal(m.YourIP) {
-			return false
-		}
-		if !lm.NextIP.Equal(m.NextIP) {
-			return false
-		}
-		// yes. these should match - but why?
-		if !m.ClientIP.Equal(m.YourIP) {
-			return false
-		}
-		return verifyCommon()(xid, m, opt)
-	}
-}
-
-// verifyOffer verifies that this message was an offer reply with YourIP, NextIP are set.
+// verifyOffer verifies that this message was an offer reply with YourIP and a ServerIdentifier.
 func verifyOffer(xid uint32) func(dhcpmsg.Message, dhcpmsg.DecodedOptions) bool {
 	return func(m dhcpmsg.Message, opt dhcpmsg.DecodedOptions) bool {
 		if opt.MessageType != dhcpmsg.MsgTypeOffer {
 			return false
 		}
-		return verifyCommon()(xid, m, opt)
+		if opt.ServerIdentifier.Equal(ipInvalid) ||
+			opt.ServerIdentifier.Equal(ipBcast) {
+			return false
+		}
+		return verifyCommon(xid, m, opt)
 	}
 }
 
-func verifyCommon() func(uint32, dhcpmsg.Message, dhcpmsg.DecodedOptions) bool {
-	return func(xid uint32, m dhcpmsg.Message, opt dhcpmsg.DecodedOptions) bool {
-		if m.Xid != xid {
+// verifySelectingAck checks the ACK message sent to a selecting DHCPREQUEST.
+func verifySelectingAck(lm dhcpmsg.Message, lopt dhcpmsg.DecodedOptions, xid uint32) func(dhcpmsg.Message, dhcpmsg.DecodedOptions) bool {
+	return verifyGenAck(lm, lopt, xid)
+}
+
+func verifyRebindingAck(lm dhcpmsg.Message, lopt dhcpmsg.DecodedOptions, xid uint32) func(dhcpmsg.Message, dhcpmsg.DecodedOptions) bool {
+	return verifyGenAck(lm, lopt, xid)
+}
+
+func verifyRenewAck(lm dhcpmsg.Message, lopt dhcpmsg.DecodedOptions, xid uint32) func(dhcpmsg.Message, dhcpmsg.DecodedOptions) bool {
+	return verifyGenAck(lm, lopt, xid)
+}
+
+func verifyGenAck(lm dhcpmsg.Message, lopt dhcpmsg.DecodedOptions, xid uint32) func(dhcpmsg.Message, dhcpmsg.DecodedOptions) bool {
+	return func(m dhcpmsg.Message, opt dhcpmsg.DecodedOptions) bool {
+		if opt.MessageType != dhcpmsg.MsgTypeAck {
 			return false
 		}
-		if _, bits := opt.SubnetMask.Size(); bits == 0 {
+		if !isStable(m, lm, opt, lopt) {
 			return false
 		}
-		if len(opt.Routers) == 0 ||
-			m.YourIP.Equal(ipInvalid) ||
-			m.YourIP.Equal(ipBcast) ||
-			m.NextIP.Equal(ipInvalid) ||
-			m.NextIP.Equal(ipBcast) {
-			return false
-		}
-		if opt.RenewalTime < 1*time.Minute {
-			// Don't accept insane renewal times.
-			return false
-		}
-		if opt.RebindTime < opt.RenewalTime {
-			return false
-		}
-		if opt.IPAddressLeaseTime < opt.RebindTime {
-			return false
-		}
-		return true
+		return verifyCommon(xid, m, opt)
 	}
+}
+
+func isStable(m, lm dhcpmsg.Message, opt, lopt dhcpmsg.DecodedOptions) bool {
+	if !m.YourIP.Equal(lm.YourIP) {
+		return false
+	}
+	if !m.NextIP.Equal(lm.NextIP) {
+		return false
+	}
+	if !opt.ServerIdentifier.Equal(lopt.ServerIdentifier) {
+		return false
+	}
+	return true
+}
+
+func verifyCommon(xid uint32, m dhcpmsg.Message, opt dhcpmsg.DecodedOptions) bool {
+	if m.Xid != xid {
+		return false
+	}
+	if len(opt.Routers) == 0 ||
+		m.YourIP.Equal(ipInvalid) ||
+		m.YourIP.Equal(ipBcast) ||
+		m.NextIP.Equal(ipBcast) {
+		return false
+	}
+	if opt.IPAddressLeaseTime < 1*time.Minute { // that would be silly.
+		return false
+	}
+	return true
 }
