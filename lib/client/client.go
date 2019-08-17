@@ -11,43 +11,32 @@ import (
 )
 
 const (
-	// Invalid value, crashes the server.
-	stateInvalid = iota
-	// Unconfigures the interface and brings it up.
-	statePurgeInterface
-	// Send initial DHCPDISCOVER.
-	stateDiscovering
-	// Selects a dhcp server via DHCPREQUEST.
-	stateSelecting
-	// Verify the current config by sending an ARP ping
-	stateArpCheck
-	// Configures the OS with the received configuration.
-	stateIfconfig
-	// We have a lease and are sleeping.
-	stateBound
-	// We try to renew the state (unicast)
-	stateRenewing
-	// We try to rebind (broadcast)
-	stateRebinding
+	stateINVALID_       = iota
+	statePurgeInterface // Unconfigures the interface and brings it up.
+	stateDiscovering    // Send initial DHCPDISCOVER.
+	stateSelecting      // Selects a dhcp server via DHCPREQUEST.
+	stateArpCheck       // Verify the current config by sending an ARP ping
+	stateIfconfig       // Configures the OS with the received configuration.
+	stateBound          // We have a lease and are sleeping.
+	stateRenewing       // We try to renew the state (unicast)
+	stateRebinding      // We try to rebind (broadcast)
+
 )
 
 type boundDeadlines struct {
-	// t1 is the time at which the client enters stateRenewing.
-	t1 time.Time
-	// t2 is the time at which the client enters stateRebinding.
-	t2 time.Time
-	// tx is the time at which we give up our IP.
-	tx time.Time
+	t1 time.Time // When to enter renewing state
+	t2 time.Time // When to enter rebinding state
+	tx time.Time // Total lease time
 }
 
 type dclient struct {
-	ctx            context.Context
-	l              *log.Logger
-	iface          *net.Interface
-	state          int
-	lastMsg        dhcpmsg.Message
-	lastOpts       dhcpmsg.DecodedOptions
-	boundDeadlines boundDeadlines
+	ctx            context.Context        // The context to use.
+	l              *log.Logger            // Logging interface
+	iface          *net.Interface         // Network hardware interface
+	state          int                    // The current state we are in
+	lastMsg        dhcpmsg.Message        // Last accepted DHCP reply
+	lastOpts       dhcpmsg.DecodedOptions // Options of last accepted reply
+	boundDeadlines boundDeadlines         // Deadline information, updated by BOUND state
 }
 
 type vrfyFunc func(dhcpmsg.Message, dhcpmsg.DecodedOptions) bool
