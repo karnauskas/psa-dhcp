@@ -39,8 +39,6 @@ type dclient struct {
 	boundDeadlines boundDeadlines         // Deadline information, updated by BOUND state
 }
 
-type vrfyFunc func(dhcpmsg.Message, dhcpmsg.DecodedOptions) bool
-
 func New(ctx context.Context, l *log.Logger, iface *net.Interface) *dclient {
 	return &dclient{ctx: ctx, l: l, iface: iface, state: statePurgeInterface}
 }

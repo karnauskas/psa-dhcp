@@ -3,17 +3,24 @@ package client
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"math/rand"
 	"net"
 	"time"
 
 	"gitlab.com/adrian_blx/psa-dhcp/lib/client/arpping"
+	vy "gitlab.com/adrian_blx/psa-dhcp/lib/client/verify"
 	"gitlab.com/adrian_blx/psa-dhcp/lib/dhcpmsg"
 	"gitlab.com/adrian_blx/psa-dhcp/lib/layer"
 	"gitlab.com/adrian_blx/psa-dhcp/lib/rsocks"
 )
 
+var (
+	errWasNack = fmt.Errorf("DHCP NACK received")
+)
+
 type senderFunc func() ([]byte, net.IP, net.IP)
+type vrfyFunc func(dhcpmsg.Message, dhcpmsg.DecodedOptions) vy.State
 
 type ssock interface {
 	Close() error
@@ -90,8 +97,11 @@ func catchReply(octx context.Context, iface *net.Interface, vrfy vrfyFunc) (dhcp
 				if msg, err := dhcpmsg.Decode(udp.Data); err == nil && bytes.Equal(msg.ClientMAC[:], iface.HardwareAddr) {
 					// Fixme: we shouldn't check the client mac from the dhcp payload here, that should be done/filtered on the receiving sock via BPF.
 					opts := dhcpmsg.DecodeOptions(msg.Options)
-					if vrfy(*msg, opts) {
+					switch vrfy(*msg, opts) {
+					case vy.Passed:
 						return *msg, opts, nil
+					case vy.IsNack:
+						return *msg, opts, errWasNack
 					}
 				}
 			}
