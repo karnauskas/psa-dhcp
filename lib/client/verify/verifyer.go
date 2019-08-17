@@ -54,6 +54,7 @@ func verifyGenAck(lm dhcpmsg.Message, lopt dhcpmsg.DecodedOptions, xid uint32) f
 	}
 }
 
+// isStable ensures that the server changed its mind too badly.
 func isStable(m, lm dhcpmsg.Message, opt, lopt dhcpmsg.DecodedOptions) bool {
 	if !m.YourIP.Equal(lm.YourIP) {
 		return false

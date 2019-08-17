@@ -9,6 +9,8 @@ import (
 	"gitlab.com/adrian_blx/psa-dhcp/lib/rsocks"
 )
 
+// Ping sends an arp ping to the given destination. The call returns after a valid reply
+// was received, after 200 ms passed or after the context expired - whichever happens first.
 func Ping(ctx context.Context, iface *net.Interface, src, dst net.IP) ([]byte, error) {
 	actx, acancel := context.WithTimeout(ctx, 200*time.Millisecond)
 	defer acancel()

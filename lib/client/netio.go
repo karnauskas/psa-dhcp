@@ -20,6 +20,7 @@ type ssock interface {
 	Write([]byte) (int, error)
 }
 
+// sendSock returns a multicast or unicast sending socket, depending on the to be sent contents.
 func sendSocket(ctx context.Context, iface *net.Interface, sender senderFunc) (ssock, error) {
 	_, src, dst := sender()
 	if src != nil && dst != nil {
@@ -40,7 +41,7 @@ func sendMessage(ctx context.Context, iface *net.Interface, sender senderFunc) e
 	}
 	defer s.Close()
 
-	barrier := time.Second * 45
+	barrier := time.Second * 100
 	delay := time.Millisecond * 700
 	for {
 		b, _, _ := sender()
@@ -59,8 +60,8 @@ func sendMessage(ctx context.Context, iface *net.Interface, sender senderFunc) e
 	}
 }
 
-// catchReply waits for DHCP messages and returns them using the supplied channel.
-// Returning a 'nil' message indicates that this function returned.
+// catchReply returns a reply from a message triggered by sendMessage.
+// Either an error is returned or a message which passed the verification function.
 func catchReply(octx context.Context, iface *net.Interface, vrfy vrfyFunc) (dhcpmsg.Message, dhcpmsg.DecodedOptions, error) {
 	s, err := rsocks.GetIPRecvSock(iface)
 	if err != nil {

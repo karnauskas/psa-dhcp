@@ -16,7 +16,7 @@ type tmpl struct {
 	hwaddr   [6]byte
 }
 
-// New returns a new message template for the given interface.
+// creates a new message template for the given interface.
 func create(iface *net.Interface) tmpl {
 	t := tmpl{
 		start: time.Now(),
