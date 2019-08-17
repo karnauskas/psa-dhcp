@@ -32,11 +32,6 @@ const (
 	stateRebinding
 )
 
-const (
-	minLeaseDuration = 10 * time.Second
-	maxLeaseDuration = 30 * time.Minute
-)
-
 type boundDeadlines struct {
 	// t1 is the time at which the client enters stateRenewing.
 	t1 time.Time
@@ -123,16 +118,6 @@ func (dx *dclient) Run() error {
 			return err
 		}
 	}
-}
-
-func normalizeLease(d time.Duration) time.Duration {
-	if d < minLeaseDuration {
-		return minLeaseDuration
-	}
-	if d > maxLeaseDuration {
-		return maxLeaseDuration
-	}
-	return d
 }
 
 func (dx dclient) currentNetconfig() libif.Ifconfig {
