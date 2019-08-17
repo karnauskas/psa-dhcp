@@ -38,7 +38,7 @@ func (rx *tmpl) request(msgtype uint8, sourceIP, destinationIP, requestedIP, ser
 		Identification: uint16(rand.Uint32()),
 		Destination:    destinationIP,
 		Source:         sourceIP,
-		TTL:            250,
+		TTL:            64,
 		Protocol:       layer.ProtoUDP,
 		Data: layer.UDP{
 			SrcPort: 68,

@@ -28,7 +28,7 @@ type bundle struct {
 func TestDiscover(t *testing.T) {
 	want := bundle{
 		IPv4: layer.IPv4{
-			TTL:      0xfa,
+			TTL:      64,
 			Protocol: 0x11,
 			// we are not configured yet.
 			Source: ipNone,
@@ -75,7 +75,7 @@ func TestDiscover(t *testing.T) {
 func TestRequestSelecing(t *testing.T) {
 	want := bundle{
 		IPv4: layer.IPv4{
-			TTL:      0xfa,
+			TTL:      64,
 			Protocol: 0x11,
 			// we are not configured yet.
 			Source: ipNone,
@@ -124,7 +124,7 @@ func TestRequestSelecing(t *testing.T) {
 func TestRequestRenewing(t *testing.T) {
 	want := bundle{
 		IPv4: layer.IPv4{
-			TTL:      0xfa,
+			TTL:      64,
 			Protocol: 0x11,
 			Source:   testSource,
 			// This is NOT a broadcast message.
@@ -171,7 +171,7 @@ func TestRequestRebinding(t *testing.T) {
 	// Same as renewing, but sent to the broadcast address.
 	want := bundle{
 		IPv4: layer.IPv4{
-			TTL:         0xfa,
+			TTL:         64,
 			Protocol:    0x11,
 			Source:      testSource,
 			Destination: ipBcast,
