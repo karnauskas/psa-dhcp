@@ -39,19 +39,16 @@ func TestDiscover(t *testing.T) {
 			SrcPort: 68,
 			DstPort: 67,
 		},
-		// ServerIdentifier MUST
-		// ClientIP must not
-		// Requested IP MUST
 		Msg: dhcpmsg.Message{
 			Op:        dhcpmsg.OpRequest,
 			Htype:     dhcpmsg.HtypeETHER,
-			Cookie:    dhcpmsg.DHCPCookie,
 			Hlen:      6,
 			ClientIP:  ipNone,
-			ClientMAC: testMAC,
 			YourIP:    ipNone,
-			RelayIP:   ipNone,
 			NextIP:    ipNone,
+			RelayIP:   ipNone,
+			ClientMAC: testMAC,
+			Cookie:    dhcpmsg.DHCPCookie,
 			Options: []dhcpmsg.DHCPOpt{
 				dhcpmsg.OptionType(dhcpmsg.MsgTypeDiscover),
 				dhcpmsg.OptionClientIdentifier(testMAC),
@@ -89,19 +86,16 @@ func TestRequestSelecing(t *testing.T) {
 			SrcPort: 68,
 			DstPort: 67,
 		},
-		// ServerIdentifier MUST
-		// ClientIP must not
-		// Requested IP MUST
 		Msg: dhcpmsg.Message{
 			Op:        dhcpmsg.OpRequest,
 			Htype:     dhcpmsg.HtypeETHER,
-			Cookie:    dhcpmsg.DHCPCookie,
 			Hlen:      6,
 			ClientIP:  ipNone,
-			ClientMAC: testMAC,
 			YourIP:    ipNone,
-			RelayIP:   ipNone,
 			NextIP:    ipNone,
+			RelayIP:   ipNone,
+			ClientMAC: testMAC,
+			Cookie:    dhcpmsg.DHCPCookie,
 			Options: []dhcpmsg.DHCPOpt{
 				dhcpmsg.OptionType(dhcpmsg.MsgTypeRequest),
 				dhcpmsg.OptionClientIdentifier(testMAC),
@@ -140,19 +134,16 @@ func TestRequestRenewing(t *testing.T) {
 			SrcPort: 68,
 			DstPort: 67,
 		},
-		// ServerIdentifier MUST NOT
-		// requested IP MUST NOT
-		// ClientIP MUST
 		Msg: dhcpmsg.Message{
 			Op:        dhcpmsg.OpRequest,
 			Htype:     dhcpmsg.HtypeETHER,
-			Cookie:    dhcpmsg.DHCPCookie,
 			Hlen:      6,
 			ClientIP:  testSource,
-			ClientMAC: testMAC,
 			YourIP:    ipNone,
-			RelayIP:   ipNone,
 			NextIP:    ipNone,
+			RelayIP:   ipNone,
+			ClientMAC: testMAC,
+			Cookie:    dhcpmsg.DHCPCookie,
 			Options: []dhcpmsg.DHCPOpt{
 				dhcpmsg.OptionType(dhcpmsg.MsgTypeRequest),
 				dhcpmsg.OptionClientIdentifier(testMAC),
@@ -177,6 +168,7 @@ func TestRequestRenewing(t *testing.T) {
 }
 
 func TestRequestRebinding(t *testing.T) {
+	// Same as renewing, but sent to the broadcast address.
 	want := bundle{
 		IPv4: layer.IPv4{
 			TTL:         0xfa,
@@ -188,19 +180,16 @@ func TestRequestRebinding(t *testing.T) {
 			SrcPort: 68,
 			DstPort: 67,
 		},
-		// ServerIdentifier MUST NOT
-		// requested IP MUST NOT
-		// ClientIP MUST
 		Msg: dhcpmsg.Message{
 			Op:        dhcpmsg.OpRequest,
 			Htype:     dhcpmsg.HtypeETHER,
-			Cookie:    dhcpmsg.DHCPCookie,
 			Hlen:      6,
 			ClientIP:  testSource,
-			ClientMAC: testMAC,
 			YourIP:    ipNone,
-			RelayIP:   ipNone,
 			NextIP:    ipNone,
+			RelayIP:   ipNone,
+			ClientMAC: testMAC,
+			Cookie:    dhcpmsg.DHCPCookie,
 			Options: []dhcpmsg.DHCPOpt{
 				dhcpmsg.OptionType(dhcpmsg.MsgTypeRequest),
 				dhcpmsg.OptionClientIdentifier(testMAC),
