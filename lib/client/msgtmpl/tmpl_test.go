@@ -14,6 +14,9 @@ var (
 	testIdentifier = net.IPv4(21, 23, 24, 25)
 	testIface      = net.Interface{HardwareAddr: []byte{1, 2, 3, 4, 5, 6}}
 	testMAC        = [6]byte{1, 2, 3, 4, 5, 6}
+	testParams     = dhcpmsg.OptionParametersList(
+		dhcpmsg.OptSubnetMask, dhcpmsg.OptRouter, dhcpmsg.OptIPAddressLeaseTime,
+		dhcpmsg.OptServerIdentifier, dhcpmsg.OptRenewalTime, dhcpmsg.OptRebindTime)
 )
 
 type bundle struct {
@@ -53,6 +56,7 @@ func TestDiscover(t *testing.T) {
 				dhcpmsg.OptionType(dhcpmsg.MsgTypeDiscover),
 				dhcpmsg.OptionClientIdentifier(testMAC),
 				dhcpmsg.OptionMaxMessageSize(maxMsgSize),
+				testParams,
 				dhcpmsg.OptionHostname("TEST"),
 			},
 		},
@@ -102,6 +106,7 @@ func TestRequestSelecing(t *testing.T) {
 				dhcpmsg.OptionType(dhcpmsg.MsgTypeRequest),
 				dhcpmsg.OptionClientIdentifier(testMAC),
 				dhcpmsg.OptionMaxMessageSize(maxMsgSize),
+				testParams,
 				dhcpmsg.OptionRequestedIP(testSource),
 				dhcpmsg.OptionServerIdentifier(testIdentifier),
 				dhcpmsg.OptionHostname("TEST"),
@@ -152,6 +157,7 @@ func TestRequestRenewing(t *testing.T) {
 				dhcpmsg.OptionType(dhcpmsg.MsgTypeRequest),
 				dhcpmsg.OptionClientIdentifier(testMAC),
 				dhcpmsg.OptionMaxMessageSize(maxMsgSize),
+				testParams,
 				dhcpmsg.OptionHostname("TEST"),
 			},
 		},
@@ -199,6 +205,7 @@ func TestRequestRebinding(t *testing.T) {
 				dhcpmsg.OptionType(dhcpmsg.MsgTypeRequest),
 				dhcpmsg.OptionClientIdentifier(testMAC),
 				dhcpmsg.OptionMaxMessageSize(maxMsgSize),
+				testParams,
 				dhcpmsg.OptionHostname("TEST"),
 			},
 		},
