@@ -78,9 +78,15 @@ func (dx *dclient) Run() error {
 		case stateBound:
 			now := time.Now()
 			dx.boundDeadlines = boundDeadlines{
-				t1: now.Add(dx.lastOpts.RenewalTime),
-				t2: now.Add(dx.lastOpts.RebindTime),
+				t1: now.Add(time.Duration(float64(dx.lastOpts.IPAddressLeaseTime) * 0.5)),
+				t2: now.Add(time.Duration(float64(dx.lastOpts.IPAddressLeaseTime) * 0.875)),
 				tx: now.Add(dx.lastOpts.IPAddressLeaseTime),
+			}
+			if dx.lastOpts.RenewalTime > time.Minute &&
+				dx.lastOpts.RebindTime > dx.lastOpts.RenewalTime &&
+				dx.lastOpts.RebindTime < dx.lastOpts.IPAddressLeaseTime {
+				dx.boundDeadlines.t1 = now.Add(dx.lastOpts.RenewalTime)
+				dx.boundDeadlines.t2 = now.Add(dx.lastOpts.RebindTime)
 			}
 			dx.l.Printf("-> Reached BOUND state. Will sleep until T1 expires.")
 			dx.l.Printf("T1 = %s", dx.boundDeadlines.t1)
@@ -91,7 +97,7 @@ func (dx *dclient) Run() error {
 		case stateRenewing:
 			dx.l.Printf("-> Reached RENEWING state. Will try until %s", dx.boundDeadlines.t2)
 			rq, xid := msgtmpl.RequestRenewing(dx.iface, dx.lastMsg.YourIP, dx.lastOpts.ServerIdentifier)
-			if lm, lo, p := dx.advanceState(dx.boundDeadlines.t2, verifyRenewAck(dx.lastMsg, xid), rq); p {
+			if lm, lo, p := dx.advanceState(dx.boundDeadlines.t2, verifyRenewAck(dx.lastMsg, dx.lastOpts, xid), rq); p {
 				dx.state = stateArpCheck
 				dx.lastMsg = lm
 				dx.lastOpts = lo
@@ -101,7 +107,7 @@ func (dx *dclient) Run() error {
 		case stateRebinding:
 			dx.l.Printf("-> Reached REBINDING state. Will try until %s", dx.boundDeadlines.tx)
 			rq, xid := msgtmpl.RequestRebinding(dx.iface, dx.lastMsg.YourIP)
-			if lm, lo, p := dx.advanceState(dx.boundDeadlines.tx, verifyRebindingAck(dx.lastMsg, xid), rq); p {
+			if lm, lo, p := dx.advanceState(dx.boundDeadlines.tx, verifyRebindingAck(dx.lastMsg, dx.lastOpts, xid), rq); p {
 				dx.state = stateArpCheck
 				dx.lastMsg = lm
 				dx.lastOpts = lo
@@ -142,7 +148,7 @@ func (dx dclient) currentNetconfig() libif.Ifconfig {
 		Router:        dx.lastOpts.Routers[0],
 		IP:            dx.lastMsg.YourIP,
 		Cidr:          cidr,
-		LeaseDuration: normalizeLease(dx.lastOpts.RebindTime),
+		LeaseDuration: dx.lastOpts.IPAddressLeaseTime,
 	}
 	return c
 }
@@ -193,7 +199,7 @@ func (dx *dclient) runStateInit() {
 	dx.l.Printf("Sending DHCPDISCOVER broadcast\n")
 
 	rq, xid := msgtmpl.Discover(dx.iface)
-	if lm, lo, p := dx.advanceState(time.Now().Add(time.Minute), verifyOffer(xid), rq); p {
+	if lm, lo, p := dx.advanceState(time.Now().Add(10*time.Minute), verifyOffer(xid), rq); p {
 		dx.state = stateSelecting
 		dx.lastMsg = lm
 		dx.lastOpts = lo
@@ -203,10 +209,10 @@ func (dx *dclient) runStateInit() {
 
 // runStateSelecting selects a dhcp server by *broadcasting* a DHCPREQUEST.
 func (dx *dclient) runStateSelecting() {
-	dx.l.Printf("Sending DHCPREQUEST for %s to %s\n", dx.lastMsg.YourIP, dx.lastMsg.NextIP)
+	dx.l.Printf("Sending DHCPREQUEST for %s to %s\n", dx.lastMsg.YourIP, dx.lastOpts.ServerIdentifier)
 
-	rq, xid := msgtmpl.RequestSelecting(dx.iface, dx.lastMsg.YourIP, dx.lastMsg.NextIP)
-	if lm, lo, p := dx.advanceState(time.Now().Add(time.Minute), verifySelectingAck(dx.lastMsg, xid), rq); p {
+	rq, xid := msgtmpl.RequestSelecting(dx.iface, dx.lastMsg.YourIP, dx.lastOpts.ServerIdentifier)
+	if lm, lo, p := dx.advanceState(time.Now().Add(time.Minute), verifySelectingAck(dx.lastMsg, dx.lastOpts, xid), rq); p {
 		dx.state = stateArpCheck
 		dx.lastMsg = lm
 		dx.lastOpts = lo
