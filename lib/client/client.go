@@ -120,15 +120,20 @@ func (dx dclient) buildNetconfig() libif.Ifconfig {
 	return c
 }
 
+// hackAbsoluteSleep sleeps until the context expires or the supplied time was reached.
+// Go does not expose access to TIMER_ABSTIME, so we poll once in a while to detect clock
+// jumps due to hyberntion. (Which in reality most likely also cause netlink events).
 func hackAbsoluteSleep(ctx context.Context, when time.Time) {
 	for {
-		if ctx.Err() != nil {
-			break
+		left := when.Sub(time.Now())
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(left):
+			return
+		case <-time.After(17 * time.Second):
+			// -> recalculate time
 		}
-		if time.Now().After(when) {
-			break
-		}
-		time.Sleep(time.Second * 3)
 	}
 }
 
