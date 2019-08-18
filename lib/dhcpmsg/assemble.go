@@ -1,6 +1,7 @@
 package dhcpmsg
 
 import (
+	"encoding/binary"
 	"hash/crc32"
 	"net"
 )
@@ -65,15 +66,11 @@ func (msg Message) Assemble() []byte {
 }
 
 func setU16Int(b []byte, val uint16) {
-	b[0] = byte(val >> 8)
-	b[1] = byte(val & 0xFF)
+	binary.BigEndian.PutUint16(b, val)
 }
 
 func setU32Int(b []byte, val uint32) {
-	b[0] = byte(val >> 24)
-	b[1] = byte(val >> 16)
-	b[2] = byte(val >> 8)
-	b[3] = byte(val)
+	binary.BigEndian.PutUint32(b, val)
 }
 
 func setIPv4(b []byte, ip net.IP) {
@@ -107,11 +104,15 @@ func optIP(ot uint8, ip net.IP) DHCPOpt {
 }
 
 func OptionMaxMessageSize(size uint16) DHCPOpt {
-	return DHCPOpt{Option: OptMaxMessageSize, Data: []byte{byte(size >> 8), byte(size & 0xFF)}}
+	data := make([]byte, 2)
+	setU16Int(data, size)
+	return DHCPOpt{Option: OptMaxMessageSize, Data: data}
 }
 
 func OptionInterfaceMTU(size uint16) DHCPOpt {
-	return DHCPOpt{Option: OptInterfaceMTU, Data: []byte{byte(size >> 8), byte(size & 0xFF)}}
+	data := make([]byte, 2)
+	setU16Int(data, size)
+	return DHCPOpt{Option: OptInterfaceMTU, Data: data}
 }
 
 func OptionClientIdentifier(hwaddr [6]byte) DHCPOpt {
