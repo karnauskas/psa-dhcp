@@ -37,15 +37,15 @@ func (dx *dclient) runStateSelecting(nextState, failState int) {
 func (dx *dclient) runStateBound(nextState int) {
 	now := time.Now()
 	dx.boundDeadlines = boundDeadlines{
-		t1: now.Add(time.Duration(float64(dx.lastOpts.IPAddressLeaseTime) * 0.5)),
-		t2: now.Add(time.Duration(float64(dx.lastOpts.IPAddressLeaseTime) * 0.875)),
-		tx: now.Add(dx.lastOpts.IPAddressLeaseTime),
+		t1: now.Add(time.Duration(float64(dx.lastOpts.IPAddressLeaseDuration) * 0.5)),
+		t2: now.Add(time.Duration(float64(dx.lastOpts.IPAddressLeaseDuration) * 0.875)),
+		tx: now.Add(dx.lastOpts.IPAddressLeaseDuration),
 	}
-	if dx.lastOpts.RenewalTime > time.Minute &&
-		dx.lastOpts.RebindTime > dx.lastOpts.RenewalTime &&
-		dx.lastOpts.RebindTime < dx.lastOpts.IPAddressLeaseTime {
-		dx.boundDeadlines.t1 = now.Add(dx.lastOpts.RenewalTime)
-		dx.boundDeadlines.t2 = now.Add(dx.lastOpts.RebindTime)
+	if dx.lastOpts.RenewalDuration > time.Minute &&
+		dx.lastOpts.RebindDuration > dx.lastOpts.RenewalDuration &&
+		dx.lastOpts.RebindDuration < dx.lastOpts.IPAddressLeaseDuration {
+		dx.boundDeadlines.t1 = now.Add(dx.lastOpts.RenewalDuration)
+		dx.boundDeadlines.t2 = now.Add(dx.lastOpts.RebindDuration)
 	}
 	dx.l.Printf("-> Lease is valid for %s", dx.boundDeadlines.tx.Sub(now))
 	dx.l.Printf("-> Renew will happen after %s, must rebind after %s", dx.boundDeadlines.t1.Sub(now), dx.boundDeadlines.t2.Sub(now))

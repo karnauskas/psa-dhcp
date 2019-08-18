@@ -115,7 +115,7 @@ func (dx dclient) buildNetconfig() libif.Ifconfig {
 		Router:        dx.lastOpts.Routers[0],
 		IP:            dx.lastMsg.YourIP,
 		Netmask:       netmask,
-		LeaseDuration: dx.lastOpts.IPAddressLeaseTime,
+		LeaseDuration: dx.lastOpts.IPAddressLeaseDuration,
 	}
 	return c
 }

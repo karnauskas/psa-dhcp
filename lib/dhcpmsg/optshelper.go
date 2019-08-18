@@ -7,22 +7,22 @@ import (
 )
 
 type DecodedOptions struct {
-	MessageType        uint8
-	MaxMessageSize     uint16
-	InterfaceMTU       uint16
-	RequestedIP        net.IP
-	ServerIdentifier   net.IP
-	BroadcastAddress   net.IP
-	SubnetMask         net.IPMask
-	Routers            []net.IP
-	DNS                []net.IP
-	IPAddressLeaseTime time.Duration
-	RenewalTime        time.Duration
-	RebindTime         time.Duration
-	DomainName         string
-	ClientIdentifier   string
-	Message            string
-	ParametersList     []uint8
+	MessageType            uint8
+	MaxMessageSize         uint16
+	InterfaceMTU           uint16
+	RequestedIP            net.IP
+	ServerIdentifier       net.IP
+	BroadcastAddress       net.IP
+	SubnetMask             net.IPMask
+	Routers                []net.IP
+	DNS                    []net.IP
+	IPAddressLeaseDuration time.Duration
+	RenewalDuration        time.Duration
+	RebindDuration         time.Duration
+	DomainName             string
+	ClientIdentifier       string
+	Message                string
+	ParametersList         []uint8
 }
 
 func DecodeOptions(opts []DHCPOpt) DecodedOptions {
@@ -41,8 +41,8 @@ func DecodeOptions(opts []DHCPOpt) DecodedOptions {
 			d.BroadcastAddress = toV4(o.Data)
 		case OptRequestedIP:
 			d.RequestedIP = toV4(o.Data)
-		case OptIPAddressLeaseTime:
-			d.IPAddressLeaseTime = toDuration(o.Data)
+		case OptIPAddressLeaseDuration:
+			d.IPAddressLeaseDuration = toDuration(o.Data)
 		case OptMessageType:
 			d.MessageType = toUint8(o.Data)
 		case OptMaxMessageSize:
@@ -53,10 +53,10 @@ func DecodeOptions(opts []DHCPOpt) DecodedOptions {
 			d.ServerIdentifier = toV4(o.Data)
 		case OptMessage:
 			d.Message = toString(o.Data)
-		case OptRenewalTime:
-			d.RenewalTime = toDuration(o.Data)
-		case OptRebindTime:
-			d.RebindTime = toDuration(o.Data)
+		case OptRenewalDuration:
+			d.RenewalDuration = toDuration(o.Data)
+		case OptRebindDuration:
+			d.RebindDuration = toDuration(o.Data)
 		case OptClientIdentifier:
 			d.ClientIdentifier = toString(o.Data)
 		case OptParametersList:

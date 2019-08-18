@@ -89,7 +89,7 @@ func verifyCommon(xid uint32, m dhcpmsg.Message, opt dhcpmsg.DecodedOptions) Sta
 		m.NextIP.Equal(ipBcast) {
 		return Failed
 	}
-	if opt.IPAddressLeaseTime < 1*time.Minute { // that would be silly.
+	if opt.IPAddressLeaseDuration < 1*time.Minute { // that would be silly.
 		return Failed
 	}
 	return Passed

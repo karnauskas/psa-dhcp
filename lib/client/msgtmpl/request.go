@@ -21,9 +21,9 @@ func (rx *tmpl) request(msgtype uint8, sourceIP, destinationIP, requestedIP, ser
 		dhcpmsg.OptionClientIdentifier(rx.hwaddr),
 		dhcpmsg.OptionMaxMessageSize(maxMsgSize),
 		dhcpmsg.OptionParametersList(
-			dhcpmsg.OptSubnetMask, dhcpmsg.OptRouter, dhcpmsg.OptIPAddressLeaseTime,
+			dhcpmsg.OptSubnetMask, dhcpmsg.OptRouter, dhcpmsg.OptIPAddressLeaseDuration,
 			dhcpmsg.OptInterfaceMTU, dhcpmsg.OptServerIdentifier,
-			dhcpmsg.OptRenewalTime, dhcpmsg.OptRebindTime),
+			dhcpmsg.OptRenewalDuration, dhcpmsg.OptRebindDuration),
 	}
 	if rx.hostname != "" {
 		msgopts = append(msgopts, dhcpmsg.OptionHostname(rx.hostname))

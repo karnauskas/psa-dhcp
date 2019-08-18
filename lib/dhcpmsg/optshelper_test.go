@@ -72,14 +72,14 @@ func TestDecodeOptions(t *testing.T) {
 		}, {
 			name: "time",
 			data: []DHCPOpt{
-				{Option: OptIPAddressLeaseTime, Data: []byte{0x01, 0x02, 0x03, 0x10}},
-				{Option: OptRenewalTime, Data: []byte{0x11, 0x02, 0x03, 0x10}},
-				{Option: OptRebindTime, Data: []byte{0x21, 0x02, 0x03, 0x10}},
+				{Option: OptIPAddressLeaseDuration, Data: []byte{0x01, 0x02, 0x03, 0x10}},
+				{Option: OptRenewalDuration, Data: []byte{0x11, 0x02, 0x03, 0x10}},
+				{Option: OptRebindDuration, Data: []byte{0x21, 0x02, 0x03, 0x10}},
 			},
 			want: DecodedOptions{
-				IPAddressLeaseTime: time.Second * 0x01020310,
-				RenewalTime:        time.Second * 0x11020310,
-				RebindTime:         time.Second * 0x21020310,
+				IPAddressLeaseDuration: time.Second * 0x01020310,
+				RenewalDuration:        time.Second * 0x11020310,
+				RebindDuration:         time.Second * 0x21020310,
 			},
 		},
 	}
