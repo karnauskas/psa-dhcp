@@ -47,7 +47,10 @@ func Unconfigure(iface *net.Interface) error {
 		return err
 	} else {
 		for _, addr := range addrs {
-			netlink.AddrDel(link, &addr)
+			if addr.Label == iface.Name {
+				// Only nuke addrs on the main interface, don't touch ethX:N.
+				netlink.AddrDel(link, &addr)
+			}
 		}
 	}
 
