@@ -25,7 +25,7 @@ func (dx *dclient) runStatePurgeInterface(nextState int) {
 // runStateIfconfig applies the current state of the client to the network interface.
 func (dx *dclient) runStateIfconfig(nextState int) {
 	nc := dx.buildNetconfig()
-	dx.l.Printf("Configuring interface to use IP %s/%d via %s\n", nc.IP, nc.Netmask, nc.Router)
+	dx.l.Printf("Configuring interface to use IP %s/%s via %s\n", nc.IP, nc.Netmask, nc.Router)
 	if err := libif.SetIface(nc); err != nil {
 		dx.panicReset("Unexpected error while configuring interface, falling back to INIT in 30 sec! (error was: %v)\n", err)
 	} else {
