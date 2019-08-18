@@ -31,7 +31,7 @@ func (mx *mclient) Run() error {
 	// We use a pointer as the local value will get updated.
 	go mx.monitor(&dcancel)
 
-	dx := &dclient{ctx: dctx, l: mx.l, iface: mx.iface, state: statePurgeInterface}
+	dx := newDclient(dctx, mx.iface, mx.l)
 	for {
 		dx.run()
 		if err := mx.ctx.Err(); err != nil {

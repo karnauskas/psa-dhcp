@@ -40,6 +40,15 @@ type dclient struct {
 	boundDeadlines boundDeadlines         // Deadline information, updated by BOUND state
 }
 
+func newDclient(ctx context.Context, iface *net.Interface, l *log.Logger) *dclient {
+	return &dclient{
+		ctx:   ctx,
+		iface: iface,
+		l:     l,
+		state: statePurgeInterface,
+	}
+}
+
 func (dx *dclient) run() error {
 	for {
 		switch dx.state {
