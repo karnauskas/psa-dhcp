@@ -11,6 +11,7 @@ type Ifconfig struct {
 	Interface     *net.Interface
 	Router        net.IP
 	IP            net.IP
+	MTU           int
 	Netmask       net.IPMask
 	LeaseDuration time.Duration
 }
@@ -119,6 +120,13 @@ func SetIface(c Ifconfig) error {
 			return err
 		}
 	}
+
+	if c.MTU > 0 {
+		if err := netlink.LinkSetMTU(link, c.MTU); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
