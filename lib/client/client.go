@@ -81,6 +81,7 @@ func (dx dclient) buildNetconfig() libif.Ifconfig {
 
 	c := libif.Ifconfig{
 		Interface:     dx.iface,
+		MTU:           int(dx.lastOpts.InterfaceMTU),
 		Router:        dx.lastOpts.Routers[0],
 		IP:            dx.lastMsg.YourIP,
 		Netmask:       netmask,
