@@ -8,6 +8,7 @@ import (
 
 	"gitlab.com/adrian_blx/psa-dhcp/lib/dhcpmsg"
 	"gitlab.com/adrian_blx/psa-dhcp/lib/libif"
+	"golang.org/x/time/rate"
 )
 
 const (
@@ -38,14 +39,16 @@ type dclient struct {
 	lastMsg        dhcpmsg.Message        // Last accepted DHCP reply
 	lastOpts       dhcpmsg.DecodedOptions // Options of last accepted reply
 	boundDeadlines boundDeadlines         // Deadline information, updated by BOUND state
+	limiter        *rate.Limiter
 }
 
 func newDclient(ctx context.Context, iface *net.Interface, l *log.Logger) *dclient {
 	return &dclient{
-		ctx:   ctx,
-		iface: iface,
-		l:     l,
-		state: statePurgeInterface,
+		ctx:     ctx,
+		iface:   iface,
+		l:       l,
+		state:   statePurgeInterface,
+		limiter: rate.NewLimiter(1, 10),
 	}
 }
 
@@ -72,6 +75,9 @@ func (dx *dclient) run() error {
 			dx.l.Panicf("invalid state: %d\n", dx.state)
 		}
 
+		if !dx.limiter.Allow() {
+			dx.l.Panicf("client went bananas, consumed all tokens!")
+		}
 		// break if main context is done.
 		if err := dx.ctx.Err(); err != nil {
 			return err
