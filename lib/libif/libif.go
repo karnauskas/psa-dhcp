@@ -95,7 +95,7 @@ func SetIface(c Ifconfig) error {
 		PreferedLft: int(c.LeaseDuration.Seconds()),
 		ValidLft:    int(c.LeaseDuration.Seconds()),
 	}
-	if err := netlink.AddrAdd(link, addr); err != nil {
+	if err := netlink.AddrReplace(link, addr); err != nil {
 		return err
 	}
 
