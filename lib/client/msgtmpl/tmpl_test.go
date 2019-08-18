@@ -16,7 +16,7 @@ var (
 	testMAC        = [6]byte{1, 2, 3, 4, 5, 6}
 	testParams     = dhcpmsg.OptionParametersList(
 		dhcpmsg.OptSubnetMask, dhcpmsg.OptRouter, dhcpmsg.OptIPAddressLeaseTime,
-		dhcpmsg.OptServerIdentifier, dhcpmsg.OptRenewalTime, dhcpmsg.OptRebindTime)
+		dhcpmsg.OptInterfaceMTU, dhcpmsg.OptServerIdentifier, dhcpmsg.OptRenewalTime, dhcpmsg.OptRebindTime)
 )
 
 type bundle struct {

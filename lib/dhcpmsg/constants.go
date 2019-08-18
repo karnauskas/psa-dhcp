@@ -32,6 +32,7 @@ const (
 	OptDNS                = 6
 	OptHostname           = 12
 	OptDomainName         = 15
+	OptInterfaceMTU       = 26
 	OptBroadcastAddress   = 28
 	OptRequestedIP        = 50
 	OptIPAddressLeaseTime = 51

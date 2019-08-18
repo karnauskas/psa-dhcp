@@ -7,20 +7,21 @@ import (
 )
 
 type DecodedOptions struct {
+	MessageType        uint8
+	MaxMessageSize     uint16
+	InterfaceMTU       uint16
+	RequestedIP        net.IP
+	ServerIdentifier   net.IP
+	BroadcastAddress   net.IP
 	SubnetMask         net.IPMask
 	Routers            []net.IP
 	DNS                []net.IP
-	DomainName         string
-	BroadcastAddress   net.IP
-	RequestedIP        net.IP
 	IPAddressLeaseTime time.Duration
-	MessageType        uint8
-	MaxMessageSize     uint16
-	ServerIdentifier   net.IP
-	Message            string
 	RenewalTime        time.Duration
 	RebindTime         time.Duration
+	DomainName         string
 	ClientIdentifier   string
+	Message            string
 	ParametersList     []uint8
 }
 
@@ -46,6 +47,8 @@ func DecodeOptions(opts []DHCPOpt) DecodedOptions {
 			d.MessageType = toUint8(o.Data)
 		case OptMaxMessageSize:
 			d.MaxMessageSize = toUint16(o.Data)
+		case OptInterfaceMTU:
+			d.InterfaceMTU = toUint16(o.Data)
 		case OptServerIdentifier:
 			d.ServerIdentifier = toV4(o.Data)
 		case OptMessage:

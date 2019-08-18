@@ -110,6 +110,10 @@ func OptionMaxMessageSize(size uint16) DHCPOpt {
 	return DHCPOpt{Option: OptMaxMessageSize, Data: []byte{byte(size >> 8), byte(size & 0xFF)}}
 }
 
+func OptionInterfaceMTU(size uint16) DHCPOpt {
+	return DHCPOpt{Option: OptInterfaceMTU, Data: []byte{byte(size >> 8), byte(size & 0xFF)}}
+}
+
 func OptionClientIdentifier(hwaddr [6]byte) DHCPOpt {
 	id := make([]byte, 15)
 	setU32Int(id[1:5], crc32.ChecksumIEEE(hwaddr[0:])) // IAID

@@ -48,11 +48,13 @@ func TestDecodeOptions(t *testing.T) {
 			data: []DHCPOpt{
 				{Option: OptMessageType, Data: []byte{0xfe}},
 				{Option: OptMaxMessageSize, Data: []byte{0x15, 0xdc}},
+				{Option: OptInterfaceMTU, Data: []byte{0x23, 0x45}},
 				{Option: OptParametersList, Data: []byte{0x11, 0xff, 0x22}},
 			},
 			want: DecodedOptions{
 				MessageType:    254,
 				MaxMessageSize: 0x15dc,
+				InterfaceMTU:   0x2345,
 				ParametersList: []uint8{0x11, 0xff, 0x22},
 			},
 		}, {
