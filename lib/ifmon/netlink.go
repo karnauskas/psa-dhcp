@@ -10,7 +10,7 @@ import (
 
 // MonitorChanges checks for when the given interface came 'back up'.
 func MonitorChanges(ctx context.Context, iface *net.Interface, event chan<- bool) error {
-	update := make(chan netlink.LinkUpdate, 64)
+	update := make(chan netlink.LinkUpdate)
 	done := make(chan struct{})
 
 	if err := netlink.LinkSubscribe(update, done); err != nil {

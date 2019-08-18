@@ -29,6 +29,7 @@ type boundDeadlines struct {
 	tx time.Time // Total lease time
 }
 
+// dclient is the dhcp client state machine.
 type dclient struct {
 	ctx            context.Context        // The context to use.
 	l              *log.Logger            // Logging interface
@@ -39,11 +40,7 @@ type dclient struct {
 	boundDeadlines boundDeadlines         // Deadline information, updated by BOUND state
 }
 
-func New(ctx context.Context, l *log.Logger, iface *net.Interface) *dclient {
-	return &dclient{ctx: ctx, l: l, iface: iface, state: statePurgeInterface}
-}
-
-func (dx *dclient) Run() error {
+func (dx *dclient) run() error {
 	for {
 		switch dx.state {
 		case statePurgeInterface:
@@ -71,6 +68,24 @@ func (dx *dclient) Run() error {
 			return err
 		}
 	}
+}
+
+// resumeClient re-inits a client using a new context.
+func (dx *dclient) resumeClient(ctx context.Context) {
+	if dx.state == stateBound || dx.state == stateRenewing || dx.state == stateRebinding {
+		// If we are in any of these states, we try to quickly re-validate our config by jumping into the rebinding state.
+		// This might enable us to confirm our lease and jump back into a bound state without bringing the interface fully down.
+		sd := time.Now().Add(5 * time.Second)
+		dx.boundDeadlines = boundDeadlines{
+			t1: sd,
+			t2: sd,
+			tx: sd,
+		}
+		dx.state = stateRebinding
+	} else {
+		dx.state = statePurgeInterface
+	}
+	dx.ctx = ctx
 }
 
 func (dx dclient) buildNetconfig() libif.Ifconfig {
