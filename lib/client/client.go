@@ -141,7 +141,7 @@ func (dx *dclient) advanceState(deadline time.Time, vrfy vrfyFunc, sender sender
 	ctx, cancel := context.WithDeadline(dx.ctx, deadline)
 	defer cancel()
 
-	dx.l.Printf("  ==> waiting for valid reply until %s", deadline)
+	dx.l.Printf("  ==> waiting for valid reply until %s", deadline.Format(time.RFC3339))
 	go sendMessage(ctx, dx.iface, sender)
 	msg, opts, err := catchReply(ctx, dx.iface, vrfy)
 

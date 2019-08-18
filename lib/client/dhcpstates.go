@@ -54,7 +54,7 @@ func (dx *dclient) runStateBound(nextState int) {
 }
 
 func (dx *dclient) runStateRenewing(nextState, failState int) {
-	dx.l.Printf("Renewing lease, will try until %s", dx.boundDeadlines.t2)
+	dx.l.Printf("Renewing lease, will try until %s", dx.boundDeadlines.t2.Format(time.RFC3339))
 	rq, xid := msgtmpl.RequestRenewing(dx.iface, dx.lastMsg.YourIP, dx.lastOpts.ServerIdentifier)
 	if lm, lo, err := dx.advanceState(dx.boundDeadlines.t2, vy.VerifyRenewingAck(dx.lastMsg, dx.lastOpts, xid), rq); err == nil {
 		dx.lastMsg = lm
@@ -68,7 +68,7 @@ func (dx *dclient) runStateRenewing(nextState, failState int) {
 }
 
 func (dx *dclient) runStateRebinding(nextState, failState int) {
-	dx.l.Printf("Rebinding lease, will try until %s", dx.boundDeadlines.tx)
+	dx.l.Printf("Rebinding lease, will try until %s", dx.boundDeadlines.tx.Format(time.RFC3339))
 	rq, xid := msgtmpl.RequestRebinding(dx.iface, dx.lastMsg.YourIP)
 	if lm, lo, err := dx.advanceState(dx.boundDeadlines.tx, vy.VerifyRebindingAck(dx.lastMsg, dx.lastOpts, xid), rq); err == nil {
 		dx.lastMsg = lm
