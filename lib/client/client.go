@@ -79,13 +79,11 @@ func (dx dclient) buildNetconfig() libif.Ifconfig {
 		netmask = dx.lastOpts.SubnetMask
 	}
 
-	cidr, _ := netmask.Size()
-
 	c := libif.Ifconfig{
 		Interface:     dx.iface,
 		Router:        dx.lastOpts.Routers[0],
 		IP:            dx.lastMsg.YourIP,
-		Cidr:          cidr,
+		Netmask:       netmask,
 		LeaseDuration: dx.lastOpts.IPAddressLeaseTime,
 	}
 	return c

@@ -1,103 +1,127 @@
 package libif
 
 import (
-	"fmt"
 	"net"
-	"os/exec"
-	"regexp"
 	"time"
+
+	"github.com/vishvananda/netlink"
 )
 
 type Ifconfig struct {
 	Interface     *net.Interface
 	Router        net.IP
 	IP            net.IP
-	Cidr          int
+	Netmask       net.IPMask
 	LeaseDuration time.Duration
 }
 
 // Down attempts to bring an interface down.
 func Down(iface *net.Interface) error {
-	return xexec("ip", "link", "set", "dev", iface.Name, "down")
+	link, err := setupNL(iface)
+	if err != nil {
+		return err
+	}
+
+	return netlink.LinkSetDown(link)
 }
 
 // Up attemtps to bring an interface up.
 func Up(iface *net.Interface) error {
-	return xexec("ip", "link", "set", "dev", iface.Name, "up")
+	link, err := setupNL(iface)
+	if err != nil {
+		return err
+	}
+
+	return netlink.LinkSetUp(link)
 }
 
 // Unconfigure removes the configuration of an interface.
 func Unconfigure(iface *net.Interface) error {
-	cmds := [][]string{
-		{"ip", "-4", "addr", "del", "dev", iface.Name},
-		{"ip", "-4", "route", "del", "default", "dev", iface.Name},
+	link, err := setupNL(iface)
+	if err != nil {
+		return err
 	}
 
-	var lerr error
-	for _, cmd := range cmds {
-		if err := xexec(cmd...); err != nil {
-			lerr = err
+	if addrs, err := netlink.AddrList(link, netlink.FAMILY_V4); err != nil {
+		return err
+	} else {
+		for _, addr := range addrs {
+			netlink.AddrDel(link, &addr)
 		}
 	}
-	return lerr
+
+	if route, err := defaultRoute(iface); err != nil {
+		return err
+	} else if route != nil {
+		if err := netlink.RouteDel(route); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
-// DefaultRoute returns the currently configured IPv4 route.
-func DefaultRoute(iface *net.Interface) (net.IP, error) {
-	c := exec.Command("ip", "-4", "route", "list", "0/0", "dev", iface.Name)
-	out, err := c.CombinedOutput()
+// defaultRoute returns the currently configured IPv4 route.
+func defaultRoute(iface *net.Interface) (*netlink.Route, error) {
+	link, err := setupNL(iface)
 	if err != nil {
-		return net.IP{}, err
+		return nil, err
 	}
-	if len(out) == 0 {
-		// no route is not really an error.
-		return net.IP{}, nil
+
+	if routes, err := netlink.RouteList(link, netlink.FAMILY_V4); err != nil {
+		return nil, err
+	} else {
+		for _, r := range routes {
+			if r.Src == nil && r.Dst == nil && r.Gw != nil {
+				return &r, nil
+			}
+		}
 	}
-	re := regexp.MustCompile(`default via (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})`)
-	if m := re.FindStringSubmatch(string(out)); len(m) == 2 {
-		return net.ParseIP(m[1]), nil
-	}
-	return net.IP{}, fmt.Errorf("failed to match IP in route output")
+	return nil, nil
 }
 
 // SetIface applies an interface configuration.
 func SetIface(c Ifconfig) error {
-	lft := fmt.Sprintf("%d", int(c.LeaseDuration.Seconds()))
-
-	if err := xexec("ip", "-4", "addr", "replace", fmt.Sprintf("%s/%d", c.IP.String(), c.Cidr),
-		"valid_lft", lft, "preferred_lft", lft, "dev", c.Interface.Name); err != nil {
-		return err
-	}
-
-	oldRoute, err := DefaultRoute(c.Interface)
+	link, err := setupNL(c.Interface)
 	if err != nil {
 		return err
 	}
 
-	if !oldRoute.Equal(net.IP{}) && !oldRoute.Equal(c.Router) {
+	addr := &netlink.Addr{
+		IPNet: &net.IPNet{
+			IP:   c.IP,
+			Mask: c.Netmask,
+		},
+		PreferedLft: int(c.LeaseDuration.Seconds()),
+		ValidLft:    int(c.LeaseDuration.Seconds()),
+	}
+	if err := netlink.AddrAdd(link, addr); err != nil {
+		return err
+	}
+
+	oldRoute, err := defaultRoute(c.Interface)
+	if err != nil {
+		return err
+	}
+
+	if oldRoute != nil && !oldRoute.Gw.Equal(c.Router) {
 		// We have an *existing* route which doesn't match: delete it.
-		if err := xexec("ip", "-4", "route", "del", "default", "via", oldRoute.String(), "dev", c.Interface.Name); err != nil {
+		if err := netlink.RouteDel(oldRoute); err != nil {
 			return err
 		}
 	}
-	if !oldRoute.Equal(c.Router) {
+	if oldRoute == nil || !oldRoute.Gw.Equal(c.Router) {
 		// Non-existing or old route is wrong: add new route.
-		if err := xexec("ip", "-4", "route", "add", "default", "via", c.Router.String(), "dev", c.Interface.Name); err != nil {
+		newRoute := &netlink.Route{
+			LinkIndex: c.Interface.Index,
+			Gw:        c.Router,
+		}
+		if err := netlink.RouteAdd(newRoute); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func xexec(cmd ...string) error {
-	if len(cmd) < 2 {
-		return fmt.Errorf("short command: %+v", cmd)
-	}
-
-	c := exec.Command(cmd[0], cmd[1:]...)
-	out, err := c.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("%v, output: %s", err, out)
-	}
-	return nil
+func setupNL(iface *net.Interface) (netlink.Link, error) {
+	return netlink.LinkByIndex(iface.Index)
 }
