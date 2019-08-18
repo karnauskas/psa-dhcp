@@ -14,8 +14,8 @@ import (
 )
 
 var (
-	ifname  = flag.String("iface", "wlp2s0", "Interface to use")
-	logTime = flag.Bool("log_time", false, "Prefix log messages with timestamp")
+	ifname  = flag.String("ifname", "", "Interface to use")
+	logTime = flag.Bool("log_time", true, "Prefix log messages with timestamp")
 )
 
 func main() {
@@ -31,6 +31,10 @@ func main() {
 		lflags |= log.LstdFlags
 	}
 	l := log.New(os.Stdout, "psa-dhcpc: ", lflags)
+
+	if *ifname == "" {
+		l.Fatalf("-ifname must be set")
+	}
 
 	iface, err := net.InterfaceByName(*ifname)
 	if err != nil {
