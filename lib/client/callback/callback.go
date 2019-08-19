@@ -6,9 +6,14 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 
 	"gitlab.com/adrian_blx/psa-dhcp/lib/libif"
+)
+
+var (
+	reSafeChars = regexp.MustCompile(`[^a-zA-Z0-9\.-]`)
 )
 
 func Cbhandler(script string, iface *net.Interface, l *log.Logger) func(*libif.Ifconfig) {
@@ -51,5 +56,6 @@ func dumpScriptConf(c *libif.Ifconfig) []string {
 }
 
 func envEntry(key, val string) string {
+	val = reSafeChars.ReplaceAllString(val, "_")
 	return fmt.Sprintf("PSA_DHCPC_%s=%s", key, val)
 }
