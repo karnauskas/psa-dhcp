@@ -1,6 +1,7 @@
 package callback
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net"
@@ -8,33 +9,43 @@ import (
 	"os/exec"
 	"regexp"
 	"strings"
+	"time"
 
 	"gitlab.com/adrian_blx/psa-dhcp/lib/libif"
+)
+
+const (
+	scriptTimeout = 1 * time.Minute
 )
 
 var (
 	reSafeChars = regexp.MustCompile(`[^a-zA-Z0-9\.-]`)
 )
 
-func Cbhandler(script string, iface *net.Interface, l *log.Logger) func(*libif.Ifconfig) {
-	return func(c *libif.Ifconfig) {
-		if script == "" {
-			return
-		}
+func Cbhandler(script string, iface *net.Interface, l *log.Logger) []func(context.Context, *libif.Ifconfig) {
+	return []func(context.Context, *libif.Ifconfig){
+		func(ctx context.Context, c *libif.Ifconfig) {
+			if script == "" {
+				return
+			}
 
-		cmd := exec.Command(script)
-		cmd.Env = append(os.Environ(),
-			envEntry("INTERFACE", iface.Name),
-		)
-		if c != nil {
-			cmd.Env = append(cmd.Env, dumpScriptConf(c)...)
-		}
+			cctx, ccancel := context.WithTimeout(ctx, scriptTimeout)
+			defer ccancel()
 
-		out, err := cmd.CombinedOutput()
-		if err != nil {
-			l.Printf("Execution of command '%s' returned error: %v", script, err)
-		}
-		l.Printf("Output of command (if any): %s", string(out))
+			cmd := exec.CommandContext(cctx, script)
+			cmd.Env = append(os.Environ(),
+				envEntry("INTERFACE", iface.Name),
+			)
+			if c != nil {
+				cmd.Env = append(cmd.Env, dumpScriptConf(c)...)
+			}
+
+			out, err := cmd.CombinedOutput()
+			if err != nil {
+				l.Printf("Execution of command '%s' returned error: %v", script, err)
+			}
+			l.Printf("Output of command (if any): %s", string(out))
+		},
 	}
 }
 

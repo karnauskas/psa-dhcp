@@ -20,7 +20,7 @@ func (dx *dclient) runStatePurgeInterface(nextState int) {
 		dx.l.Printf("Bringing up interface returned error %v\n", err)
 	}
 	dx.state = nextState
-	dx.callback(nil)
+	dx.runCallbacks(nil)
 }
 
 // runStateIfconfig applies the current state of the client to the network interface.
@@ -31,7 +31,7 @@ func (dx *dclient) runStateIfconfig(nextState int) {
 		dx.panicReset("Unexpected error while configuring interface, falling back to INIT in 30 sec! (error was: %v)\n", err)
 	} else {
 		dx.state = nextState
-		dx.callback(&nc)
+		dx.runCallbacks(&nc)
 	}
 }
 
