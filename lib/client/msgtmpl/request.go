@@ -3,7 +3,6 @@ package msgtmpl
 import (
 	"math/rand"
 	"net"
-	"time"
 
 	"gitlab.com/adrian_blx/psa-dhcp/lib/dhcpmsg"
 	"gitlab.com/adrian_blx/psa-dhcp/lib/layer"
@@ -49,7 +48,6 @@ func (rx *tmpl) request(msgtype uint8, sourceIP, destinationIP, requestedIP, ser
 				Htype:     dhcpmsg.HtypeETHER,
 				Hlen:      uint8(len(rx.hwaddr)),
 				Xid:       rx.xid,
-				Secs:      uint16(time.Now().Sub(rx.start).Seconds()),
 				ClientMAC: rx.hwaddr,
 				ClientIP:  sourceIP,
 				Cookie:    dhcpmsg.DHCPCookie,

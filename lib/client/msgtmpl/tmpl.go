@@ -4,14 +4,12 @@ import (
 	"math/rand"
 	"net"
 	"os"
-	"time"
 
 	"gitlab.com/adrian_blx/psa-dhcp/lib/dhcpmsg"
 )
 
 type tmpl struct {
 	hostname string
-	start    time.Time
 	xid      uint32
 	hwaddr   [6]byte
 }
@@ -19,8 +17,7 @@ type tmpl struct {
 // creates a new message template for the given interface.
 func create(iface *net.Interface) tmpl {
 	t := tmpl{
-		start: time.Now(),
-		xid:   rand.Uint32(),
+		xid: rand.Uint32(),
 	}
 	if hn, err := os.Hostname(); err == nil {
 		t.hostname = hn
