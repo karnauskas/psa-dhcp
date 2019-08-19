@@ -14,3 +14,6 @@ test: test-go test-e2e
 
 test-go:
 	go test -v ./lib/...
+
+rpi:
+	env GOOS=linux GOARCH=arm GOARM=5 go build cmd/psa-dhcpc.go
