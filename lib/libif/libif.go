@@ -12,6 +12,8 @@ type Ifconfig struct {
 	Router        net.IP
 	IP            net.IP
 	MTU           int
+	DNS           []net.IP
+	DomainName    string
 	Netmask       net.IPMask
 	LeaseDuration time.Duration
 }

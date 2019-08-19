@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"strings"
 
 	"gitlab.com/adrian_blx/psa-dhcp/lib/libif"
 )
@@ -18,7 +19,7 @@ func Cbhandler(script string, iface *net.Interface, l *log.Logger) func(*libif.I
 
 		cmd := exec.Command(script)
 		cmd.Env = append(os.Environ(),
-			fmt.Sprintf("PSA_DHCPC_INTERFACE=%q", iface.Name),
+			envEntry("INTERFACE", iface.Name),
 		)
 		if c != nil {
 			cmd.Env = append(cmd.Env, dumpScriptConf(c)...)
@@ -33,11 +34,22 @@ func Cbhandler(script string, iface *net.Interface, l *log.Logger) func(*libif.I
 }
 
 func dumpScriptConf(c *libif.Ifconfig) []string {
+	dns := make([]string, len(c.DNS))
+	for i, d := range c.DNS {
+		dns[i] = d.String()
+	}
+
 	return append([]string{},
-		fmt.Sprintf("PSA_DHCPC_IPV4_ROUTER=%q", c.Router),
-		fmt.Sprintf("PSA_DHCPC_IPV4_ADDRESS=%q", c.IP),
-		fmt.Sprintf("PSA_DHCPC_MTU=%d", c.MTU),
-		fmt.Sprintf("PSA_DHCPC_NETMASK=%q", c.Netmask),
-		fmt.Sprintf("PSA_DHCPC_LEASE_SEC=%d", int(c.LeaseDuration.Seconds())),
+		envEntry("IPV4_ROUTER", c.Router.String()),
+		envEntry("IPV4_ADDRESS", c.IP.String()),
+		envEntry("NETMASK", c.Netmask.String()),
+		envEntry("DOMAIN_NAME", c.DomainName),
+		envEntry("DNS_LIST", strings.Join(dns, ",")),
+		envEntry("MTU", fmt.Sprintf("%d", c.MTU)),
+		envEntry("LEASE_SEC", fmt.Sprintf("%d", int(c.LeaseDuration.Seconds()))),
 	)
+}
+
+func envEntry(key, val string) string {
+	return fmt.Sprintf("PSA_DHCPC_%s=%s", key, val)
 }
