@@ -39,16 +39,21 @@ type dclient struct {
 	lastMsg        dhcpmsg.Message        // Last accepted DHCP reply
 	lastOpts       dhcpmsg.DecodedOptions // Options of last accepted reply
 	boundDeadlines boundDeadlines         // Deadline information, updated by BOUND state
-	limiter        *rate.Limiter
+	limiter        *rate.Limiter          // Rate limiter
+	callback       func(*libif.Ifconfig)  // Event callback, can be nil.
 }
 
-func newDclient(ctx context.Context, iface *net.Interface, l *log.Logger) *dclient {
+func newDclient(ctx context.Context, iface *net.Interface, l *log.Logger, cb func(*libif.Ifconfig)) *dclient {
+	if cb == nil {
+		cb = func(*libif.Ifconfig) {}
+	}
 	return &dclient{
-		ctx:     ctx,
-		iface:   iface,
-		l:       l,
-		state:   statePurgeInterface,
-		limiter: rate.NewLimiter(1, 10),
+		ctx:      ctx,
+		iface:    iface,
+		l:        l,
+		callback: cb,
+		state:    statePurgeInterface,
+		limiter:  rate.NewLimiter(1, 10),
 	}
 }
 

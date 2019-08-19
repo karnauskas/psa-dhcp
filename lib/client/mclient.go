@@ -5,19 +5,21 @@ import (
 	"log"
 	"net"
 
+	cb "gitlab.com/adrian_blx/psa-dhcp/lib/client/callback"
 	"gitlab.com/adrian_blx/psa-dhcp/lib/ifmon"
 )
 
 // mclient is the 'main' client and is what we return on New.
 type mclient struct {
-	ctx   context.Context
-	l     *log.Logger
-	iface *net.Interface
+	ctx    context.Context
+	l      *log.Logger
+	iface  *net.Interface
+	script string
 }
 
 // New returns a new mclient to the caller. Use Run() to launch it.
-func New(ctx context.Context, l *log.Logger, iface *net.Interface) *mclient {
-	return &mclient{ctx: ctx, l: l, iface: iface}
+func New(ctx context.Context, l *log.Logger, iface *net.Interface, script string) *mclient {
+	return &mclient{ctx: ctx, l: l, iface: iface, script: script}
 }
 
 // Run runs the main loop.
@@ -31,7 +33,7 @@ func (mx *mclient) Run() error {
 	// We use a pointer as the local value will get updated.
 	go mx.monitor(&dcancel)
 
-	dx := newDclient(dctx, mx.iface, mx.l)
+	dx := newDclient(dctx, mx.iface, mx.l, cb.Cbhandler(mx.script, mx.iface, mx.l))
 	for {
 		dx.run()
 		if err := mx.ctx.Err(); err != nil {
