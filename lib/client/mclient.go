@@ -6,6 +6,7 @@ import (
 	"net"
 
 	cb "gitlab.com/adrian_blx/psa-dhcp/lib/client/callback"
+	"gitlab.com/adrian_blx/psa-dhcp/lib/client/dclient"
 	"gitlab.com/adrian_blx/psa-dhcp/lib/ifmon"
 )
 
@@ -33,14 +34,14 @@ func (mx *mclient) Run() error {
 	// We use a pointer as the local value will get updated.
 	go mx.monitor(&dcancel)
 
-	dx := newDclient(dctx, mx.iface, mx.l, cb.Cbhandler(mx.script, mx.iface, mx.l))
+	dx := dclient.New(dctx, mx.iface, mx.l, cb.Cbhandler(mx.script, mx.iface, mx.l))
 	for {
-		dx.run()
+		dx.Run()
 		if err := mx.ctx.Err(); err != nil {
 			return err
 		}
 		dctx, dcancel = context.WithCancel(mx.ctx)
-		dx.resumeClient(dctx)
+		dx.ResumeClient(dctx)
 	}
 }
 

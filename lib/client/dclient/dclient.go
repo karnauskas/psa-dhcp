@@ -1,4 +1,4 @@
-package client
+package dclient
 
 import (
 	"context"
@@ -43,7 +43,7 @@ type dclient struct {
 	callbacks      []func(context.Context, *libif.Ifconfig) // List of possible callbacks.
 }
 
-func newDclient(ctx context.Context, iface *net.Interface, l *log.Logger, cb []func(context.Context, *libif.Ifconfig)) *dclient {
+func New(ctx context.Context, iface *net.Interface, l *log.Logger, cb []func(context.Context, *libif.Ifconfig)) *dclient {
 	return &dclient{
 		ctx:       ctx,
 		iface:     iface,
@@ -54,7 +54,7 @@ func newDclient(ctx context.Context, iface *net.Interface, l *log.Logger, cb []f
 	}
 }
 
-func (dx *dclient) run() error {
+func (dx *dclient) Run() error {
 	for {
 		switch dx.state {
 		case statePurgeInterface:
@@ -88,7 +88,7 @@ func (dx *dclient) run() error {
 }
 
 // resumeClient re-inits a client using a new context.
-func (dx *dclient) resumeClient(ctx context.Context) {
+func (dx *dclient) ResumeClient(ctx context.Context) {
 	if dx.state == stateBound || dx.state == stateRenewing || dx.state == stateRebinding {
 		// If we are in any of these states, we try to quickly re-validate our config by jumping into the rebinding state.
 		// This might enable us to confirm our lease and jump back into a bound state without bringing the interface fully down.
