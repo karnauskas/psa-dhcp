@@ -3,6 +3,7 @@ package dhcpmsg
 import (
 	"net"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 )
@@ -57,6 +58,9 @@ func TestAssemble(t *testing.T) {
 					OptionServerIdentifier(net.IPv4(9, 8, 7, 6)),
 					OptionParametersList(1, 2, 255, 18),
 					OptionInterfaceMTU(0xf3f1),
+					OptionIPAddressLeaseDuration(30 * time.Minute),
+					OptionSubnetMask(net.IPv4Mask(255, 255, 255, 0)),
+					OptionRouter(net.IPv4(127, 0, 0, 29)),
 				},
 			},
 			want: []byte{
@@ -82,6 +86,9 @@ func TestAssemble(t *testing.T) {
 				0x36, 0x04, 0x09, 0x08, 0x07, 0x06, // ServerIdentifier
 				0x37, 0x04, 0x01, 0x02, 0xff, 0x12, // Parameters list
 				0x1a, 0x02, 0xf3, 0xf1, // Interface MTU
+				0x33, 0x04, 0x00, 0x00, 0x07, 0x08, // Lease Duration
+				0x01, 0x04, 0xff, 0xff, 0xff, 0x00, // Subnet mask
+				0x03, 0x04, 0x7f, 0x00, 0x00, 0x1d, // Router
 				0xff,
 			},
 		},

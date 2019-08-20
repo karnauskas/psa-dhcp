@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"hash/crc32"
 	"net"
+	"time"
 )
 
 type Message struct {
@@ -95,6 +96,10 @@ func OptionRequestedIP(ip net.IP) DHCPOpt {
 	return optIP(OptRequestedIP, ip)
 }
 
+func OptionRouter(ip net.IP) DHCPOpt {
+	return optIP(OptRouter, ip)
+}
+
 func optIP(ot uint8, ip net.IP) DHCPOpt {
 	b := make([]byte, 4)
 	if x := ip.To4(); x != nil {
@@ -131,4 +136,14 @@ func OptionParametersList(params ...uint8) DHCPOpt {
 		l[i] = p
 	}
 	return DHCPOpt{Option: OptParametersList, Data: l}
+}
+
+func OptionIPAddressLeaseDuration(d time.Duration) DHCPOpt {
+	b := make([]byte, 4)
+	setU32Int(b, uint32(d.Seconds()))
+	return DHCPOpt{Option: OptIPAddressLeaseDuration, Data: b}
+}
+
+func OptionSubnetMask(mask net.IPMask) DHCPOpt {
+	return DHCPOpt{Option: OptSubnetMask, Data: mask}
 }
