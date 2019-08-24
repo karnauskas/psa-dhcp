@@ -2,35 +2,32 @@ syntax = "proto3";
 package config;
 
 message ServerConfig {
-	// Network interface to listen on.
-	string interface = 1;
-
 	// IP&cidr we are responsible for.
-	string network = 2;
+	string network = 1;
 
 	// If set, restricts the range we use for dynamic IP assignment; must be within network.
-	string dynamic_range = 3;
+	string dynamic_range = 2;
 
 	// Validity of leases.
-	string lease_duration = 4;
+	string lease_duration = 3;
 
 	// Domain name to announce.
-	string domain = 5;
+	string domain = 4;
 
 	// Router to announce.
-	string router = 6;
+	string router = 5;
 
 	// List of DNS to announce.
-	repeated string dns = 7;
+	repeated string dns = 6;
 
 	// List of NTP servers to announce.
-	repeated string ntp = 8;
+	repeated string ntp = 7;
 
 	// Disable dynamic configuration, only hand out IPs to staticly configured hosts.
-	bool static_only = 9;
+	bool static_only = 8;
 
 	// Static hwaddr -> config mapping.
-	map<string, ClientConfig> overrides = 10;
+	map<string, ClientConfig> overrides = 9;
 }
 
 message ClientConfig {
