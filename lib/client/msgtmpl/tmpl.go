@@ -11,7 +11,7 @@ import (
 type tmpl struct {
 	hostname string
 	xid      uint32
-	hwaddr   [6]byte
+	hwaddr   net.HardwareAddr
 }
 
 // creates a new message template for the given interface.
@@ -22,9 +22,9 @@ func create(iface *net.Interface) tmpl {
 	if hn, err := os.Hostname(); err == nil {
 		t.hostname = hn
 	}
-	if len(iface.HardwareAddr) == 6 {
-		copy(t.hwaddr[:], iface.HardwareAddr[:])
-	}
+
+	t.hwaddr = make(net.HardwareAddr, len(iface.HardwareAddr))
+	copy(t.hwaddr, iface.HardwareAddr)
 	return t
 }
 

@@ -39,7 +39,6 @@ func TestDecodeMessage(t *testing.T) {
 			want: &Message{
 				Op:             0x39,
 				Htype:          0x44,
-				Hlen:           0x06,
 				Hops:           0x07,
 				Xid:            0xfefa,
 				Secs:           0x12,
@@ -48,8 +47,7 @@ func TestDecodeMessage(t *testing.T) {
 				YourIP:         net.IPv4(1, 2, 3, 4),
 				NextIP:         net.IPv4(10, 11, 12, 13),
 				RelayIP:        net.IPv4(99, 88, 77, 66),
-				ClientMAC:      [6]byte{0xaa, 0xbb, 0xcc, 0x11, 0x22, 0x33},
-				MACPadding:     [10]byte{1, 1, 1, 1, 1, 1, 1, 1, 1, 2},
+				ClientMAC:      net.HardwareAddr{0xaa, 0xbb, 0xcc, 0x11, 0x22, 0x33},
 				ServerHostName: [64]byte{'f', 'o', 'o'},
 				BootFilename:   [128]byte{'b', 'o', 'o', 't', '.', 'b', 'i', 'n'},
 				Cookie:         0x63825363,
@@ -79,10 +77,11 @@ func TestDecodeMessage(t *testing.T) {
 				0xff,
 			},
 			want: &Message{
-				ClientIP: net.IPv4(0, 0, 0, 0),
-				YourIP:   net.IPv4(0, 0, 0, 0),
-				NextIP:   net.IPv4(0, 0, 0, 0),
-				RelayIP:  net.IPv4(0, 0, 0, 0),
+				ClientIP:  net.IPv4(0, 0, 0, 0),
+				YourIP:    net.IPv4(0, 0, 0, 0),
+				NextIP:    net.IPv4(0, 0, 0, 0),
+				RelayIP:   net.IPv4(0, 0, 0, 0),
+				ClientMAC: net.HardwareAddr{},
 			},
 		}, {
 			// no opt termination.
@@ -125,10 +124,11 @@ func TestDecodeMessage(t *testing.T) {
 				0xff, 0x00,
 			},
 			want: &Message{
-				ClientIP: net.IPv4(0, 0, 0, 0),
-				YourIP:   net.IPv4(0, 0, 0, 0),
-				NextIP:   net.IPv4(0, 0, 0, 0),
-				RelayIP:  net.IPv4(0, 0, 0, 0),
+				ClientIP:  net.IPv4(0, 0, 0, 0),
+				YourIP:    net.IPv4(0, 0, 0, 0),
+				NextIP:    net.IPv4(0, 0, 0, 0),
+				RelayIP:   net.IPv4(0, 0, 0, 0),
+				ClientMAC: net.HardwareAddr{},
 			},
 		}, {
 			// zero sized opt, not terminated.
@@ -172,10 +172,11 @@ func TestDecodeMessage(t *testing.T) {
 				0x03, 0x00, 0xff,
 			},
 			want: &Message{
-				ClientIP: net.IPv4(0, 0, 0, 0),
-				YourIP:   net.IPv4(0, 0, 0, 0),
-				NextIP:   net.IPv4(0, 0, 0, 0),
-				RelayIP:  net.IPv4(0, 0, 0, 0),
+				ClientIP:  net.IPv4(0, 0, 0, 0),
+				YourIP:    net.IPv4(0, 0, 0, 0),
+				NextIP:    net.IPv4(0, 0, 0, 0),
+				RelayIP:   net.IPv4(0, 0, 0, 0),
+				ClientMAC: net.HardwareAddr{},
 				Options: []DHCPOpt{
 					{Option: 3, Data: []byte{}},
 				},
@@ -201,10 +202,11 @@ func TestDecodeMessage(t *testing.T) {
 				0x03, 0x00, 0x04, 0x02, 0xff, 0xbb, 0x01, 0x00, 0xff,
 			},
 			want: &Message{
-				ClientIP: net.IPv4(0, 0, 0, 0),
-				YourIP:   net.IPv4(0, 0, 0, 0),
-				NextIP:   net.IPv4(0, 0, 0, 0),
-				RelayIP:  net.IPv4(0, 0, 0, 0),
+				ClientIP:  net.IPv4(0, 0, 0, 0),
+				YourIP:    net.IPv4(0, 0, 0, 0),
+				NextIP:    net.IPv4(0, 0, 0, 0),
+				RelayIP:   net.IPv4(0, 0, 0, 0),
+				ClientMAC: net.HardwareAddr{},
 				Options: []DHCPOpt{
 					{Option: 3, Data: []byte{}},
 					{Option: 4, Data: []byte{0xff, 0xbb}},

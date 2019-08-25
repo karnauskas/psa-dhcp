@@ -13,7 +13,7 @@ var (
 	testSource     = net.IPv4(1, 2, 3, 9)
 	testIdentifier = net.IPv4(21, 23, 24, 25)
 	testIface      = net.Interface{HardwareAddr: []byte{1, 2, 3, 4, 5, 6}}
-	testMAC        = [6]byte{1, 2, 3, 4, 5, 6}
+	testMAC        = net.HardwareAddr{1, 2, 3, 4, 5, 6}
 	testParams     = dhcpmsg.OptionParametersList(
 		dhcpmsg.OptSubnetMask, dhcpmsg.OptRouter, dhcpmsg.OptIPAddressLeaseDuration,
 		dhcpmsg.OptServerIdentifier, dhcpmsg.OptDNS, dhcpmsg.OptDomainName,
@@ -43,7 +43,6 @@ func TestDiscover(t *testing.T) {
 		Msg: dhcpmsg.Message{
 			Op:        dhcpmsg.OpRequest,
 			Htype:     dhcpmsg.HtypeETHER,
-			Hlen:      6,
 			ClientIP:  ipNone,
 			YourIP:    ipNone,
 			NextIP:    ipNone,
@@ -90,7 +89,6 @@ func TestRequestSelecing(t *testing.T) {
 		Msg: dhcpmsg.Message{
 			Op:        dhcpmsg.OpRequest,
 			Htype:     dhcpmsg.HtypeETHER,
-			Hlen:      6,
 			ClientIP:  ipNone,
 			YourIP:    ipNone,
 			NextIP:    ipNone,
@@ -138,7 +136,6 @@ func TestRequestRenewing(t *testing.T) {
 		Msg: dhcpmsg.Message{
 			Op:        dhcpmsg.OpRequest,
 			Htype:     dhcpmsg.HtypeETHER,
-			Hlen:      6,
 			ClientIP:  testSource,
 			YourIP:    ipNone,
 			NextIP:    ipNone,
@@ -184,7 +181,6 @@ func TestRequestRebinding(t *testing.T) {
 		Msg: dhcpmsg.Message{
 			Op:        dhcpmsg.OpRequest,
 			Htype:     dhcpmsg.HtypeETHER,
-			Hlen:      6,
 			ClientIP:  testSource,
 			YourIP:    ipNone,
 			NextIP:    ipNone,

@@ -47,7 +47,6 @@ func (rx *tmpl) request(msgtype uint8, sourceIP, destinationIP, requestedIP, ser
 			Data: dhcpmsg.Message{
 				Op:        dhcpmsg.OpRequest,
 				Htype:     dhcpmsg.HtypeETHER,
-				Hlen:      uint8(len(rx.hwaddr)),
 				Xid:       rx.xid,
 				ClientMAC: rx.hwaddr,
 				ClientIP:  sourceIP,

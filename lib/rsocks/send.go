@@ -11,7 +11,7 @@ type rssock struct {
 }
 
 var (
-	bcastAddr = [6]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
+	bcastAddr = net.HardwareAddr{0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
 )
 
 // GetIPSendSock returns a raw socket for sending broadcast IP traffic.
@@ -21,9 +21,7 @@ func GetIPSendSock(iface *net.Interface) (*rssock, error) {
 
 // GetUnicastSendSock returns a new raw socket for sending unicast IP traffic.
 func GetUnicastSendSock(iface *net.Interface, hwaddr net.HardwareAddr) (*rssock, error) {
-	var mac [6]byte
-	copy(mac[:], hwaddr[0:6])
-	return getSendSock(iface, htons(syscall.ETH_P_IP), mac)
+	return getSendSock(iface, htons(syscall.ETH_P_IP), hwaddr)
 }
 
 // GetARPSendSock returns a raw socket for broadcasting ARP requests.
@@ -31,7 +29,7 @@ func GetARPSendSock(iface *net.Interface) (*rssock, error) {
 	return getSendSock(iface, htons(syscall.ETH_P_ARP), bcastAddr)
 }
 
-func getSendSock(iface *net.Interface, proto uint16, hwaddr [6]byte) (*rssock, error) {
+func getSendSock(iface *net.Interface, proto uint16, hwaddr net.HardwareAddr) (*rssock, error) {
 	s, err := syscall.Socket(syscall.AF_PACKET, syscall.SOCK_DGRAM, int(proto))
 	if err != nil {
 		return nil, err

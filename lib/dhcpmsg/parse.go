@@ -16,10 +16,10 @@ func Decode(b []byte) (*Message, error) {
 		return nil, fmt.Errorf("short dhcpmsg")
 	}
 
+	hlen := b[2]
 	msg := &Message{
 		Op:       b[0],
 		Htype:    b[1],
-		Hlen:     b[2],
 		Hops:     b[3],
 		Xid:      binary.BigEndian.Uint32(b[4:]),
 		Secs:     binary.BigEndian.Uint16(b[8:]),
@@ -30,8 +30,9 @@ func Decode(b []byte) (*Message, error) {
 		NextIP:   net.IPv4(b[20], b[21], b[22], b[23]),
 		RelayIP:  net.IPv4(b[24], b[25], b[26], b[27]),
 	}
-	copy(msg.ClientMAC[:], b[28:])
-	copy(msg.MACPadding[:], b[34:])
+
+	msg.ClientMAC = make(net.HardwareAddr, hlen)
+	copy(msg.ClientMAC, b[28:])
 	copy(msg.ServerHostName[:], b[44:])
 	copy(msg.BootFilename[:], b[108:])
 

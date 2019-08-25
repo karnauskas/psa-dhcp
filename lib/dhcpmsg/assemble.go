@@ -10,7 +10,6 @@ import (
 type Message struct {
 	Op             uint8
 	Htype          uint8
-	Hlen           uint8
 	Hops           uint8
 	Xid            uint32
 	Secs           uint16
@@ -19,8 +18,7 @@ type Message struct {
 	YourIP         net.IP
 	NextIP         net.IP
 	RelayIP        net.IP
-	ClientMAC      [6]byte
-	MACPadding     [10]byte
+	ClientMAC      net.HardwareAddr
 	ServerHostName [64]byte
 	BootFilename   [128]byte
 	Cookie         uint32
@@ -37,7 +35,7 @@ func (msg Message) Assemble() []byte {
 	buf := make([]byte, 240)
 	buf[0] = msg.Op
 	buf[1] = msg.Htype
-	buf[2] = msg.Hlen
+	buf[2] = byte(len(msg.ClientMAC))
 	buf[3] = msg.Hops
 	setU32Int(buf[4:], msg.Xid)
 	setU16Int(buf[8:], msg.Secs)
@@ -46,8 +44,7 @@ func (msg Message) Assemble() []byte {
 	setIPv4(buf[16:], msg.YourIP)
 	setIPv4(buf[20:], msg.NextIP)
 	setIPv4(buf[24:], msg.RelayIP)
-	copy(buf[28:], msg.ClientMAC[:])
-	copy(buf[34:], msg.MACPadding[:])
+	copy(buf[28:44], msg.ClientMAC[:])
 	copy(buf[44:], msg.ServerHostName[:])
 	copy(buf[108:], msg.BootFilename[:])
 	setU32Int(buf[236:], msg.Cookie)
@@ -120,10 +117,14 @@ func OptionInterfaceMTU(size uint16) DHCPOpt {
 	return DHCPOpt{Option: OptInterfaceMTU, Data: data}
 }
 
-func OptionClientIdentifier(hwaddr [6]byte) DHCPOpt {
+func OptionClientIdentifier(hwaddr net.HardwareAddr) DHCPOpt {
 	id := make([]byte, 15)
 	setU32Int(id[1:5], crc32.ChecksumIEEE(hwaddr[0:])) // IAID
-	copy(id[9:15], hwaddr[0:6])
+
+	// Take up to 6 bytes of the hwaddr into account.
+	// If it is more, we still have some uniqueness due to the checksum.
+	copy(id[9:15], hwaddr[0:])
+
 	id[0] = 0xff // Type.
 	id[6] = 3    // Link layer without time
 	id[8] = 1    // Ethernet
