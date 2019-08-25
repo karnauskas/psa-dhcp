@@ -8,7 +8,7 @@ import (
 	"net"
 	"time"
 
-	"gitlab.com/adrian_blx/psa-dhcp/lib/client/arpping"
+	"gitlab.com/adrian_blx/psa-dhcp/lib/arpping"
 	vy "gitlab.com/adrian_blx/psa-dhcp/lib/client/verify"
 	"gitlab.com/adrian_blx/psa-dhcp/lib/dhcpmsg"
 	"gitlab.com/adrian_blx/psa-dhcp/lib/layer"

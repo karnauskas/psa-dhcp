@@ -6,7 +6,7 @@ import (
 	"net"
 	"time"
 
-	"gitlab.com/adrian_blx/psa-dhcp/lib/client/arpping"
+	"gitlab.com/adrian_blx/psa-dhcp/lib/arpping"
 	"gitlab.com/adrian_blx/psa-dhcp/lib/libif"
 )
 
