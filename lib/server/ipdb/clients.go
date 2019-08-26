@@ -14,7 +14,7 @@ type client struct {
 	permanent   bool             // permanent entries expire, but are never removed.
 }
 
-type clients map[uip]client
+type clients map[uip]*client
 
 // Lookup returns the entries matching given IP and/or hwaddr.
 func (cx clients) Lookup(now time.Time, ip uip, hwaddr net.HardwareAddr) (*client, *client) {
@@ -26,12 +26,10 @@ func (cx clients) Lookup(now time.Time, ip uip, hwaddr net.HardwareAddr) (*clien
 			continue
 		}
 		if v.ip == ip {
-			cpy := v
-			oldIp = &cpy
+			oldIp = v
 		}
 		if bytes.Equal(v.hwaddr, hwaddr) {
-			cpy := v
-			oldHwaddr = &cpy
+			oldHwaddr = v
 		}
 		if oldIp != nil && oldHwaddr != nil {
 			break
@@ -49,6 +47,6 @@ func (cx clients) Inject(now time.Time, c client) error {
 	if hw != nil {
 		return fmt.Errorf("entry for this hardwareaddr already exists")
 	}
-	cx[c.ip] = c
+	cx[c.ip] = &c
 	return nil
 }

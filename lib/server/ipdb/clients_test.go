@@ -14,7 +14,6 @@ var (
 )
 
 func TestClients(t *testing.T) {
-	now := time.Unix(1000, 0)
 	c := make(clients)
 
 	// First ever client: inject expected to work.
@@ -54,5 +53,26 @@ func TestClients(t *testing.T) {
 	if a, b := c.Lookup(now, uip(9), net.HardwareAddr{0x1}); a != nil || b == nil {
 		t.Errorf("Looking expected map to be purged, got a=%p, b=%p\n", a, b)
 	}
+}
 
+func TestPermanent(t *testing.T) {
+	c := make(clients)
+
+	// Permanent client with short TTL.
+	if err := c.Inject(now, client{ip: uip(9), hwaddr: net.HardwareAddr{0x99}, leasedUntil: leaseShort, permanent: true}); err != nil {
+		t.Errorf("Injecting permanent client failed with %v; wanted nil.", err)
+	}
+	// Add new client while the permanent one should already be expired; still must fail.
+	if err := c.Inject(then, client{ip: uip(9), hwaddr: net.HardwareAddr{0x99}, leasedUntil: leaseShort}); err == nil {
+		t.Errorf("Injecting permanent but expired client returned nil, wanted non-nil.")
+	}
+
+	// Lookup at 'now' should work.
+	if a, b := c.Lookup(now, uip(9), net.HardwareAddr{0x99}); a == nil || b == nil || a != b {
+		t.Errorf("Expected to find permanent client, got a=%p, b=%p", a, b)
+	}
+	// Lookup at 'then' should also work as permanent entries never expire.
+	if a, b := c.Lookup(then, uip(9), net.HardwareAddr{0x99}); a == nil || b == nil || a != b {
+		t.Errorf("Expected to find permanent client, got a=%p, b=%p", a, b)
+	}
 }
