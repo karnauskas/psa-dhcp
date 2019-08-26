@@ -76,3 +76,14 @@ func TestPermanent(t *testing.T) {
 		t.Errorf("Expected to find permanent client, got a=%p, b=%p", a, b)
 	}
 }
+
+func TestExpireInject(t *testing.T) {
+	c := make(clients)
+
+	if err := c.Inject(now, client{ip: uip(9), hwaddr: net.HardwareAddr{0x99}, leasedUntil: leaseShort}); err != nil {
+		t.Errorf("Injecting client failed with %v; wanted nil.", err)
+	}
+	if err := c.Inject(then, client{ip: uip(9), hwaddr: net.HardwareAddr{0x99}, leasedUntil: leaseShort}); err != nil {
+		t.Errorf("Injecting 2nd client failed with %v; wanted nil.", err)
+	}
+}
