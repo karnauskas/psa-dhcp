@@ -1,6 +1,7 @@
 package ipdb
 
 import (
+	"fmt"
 	"net"
 )
 
@@ -12,4 +13,8 @@ func (ux uip) toV4() net.IP {
 
 func (ux uip) valid() bool {
 	return ux&0xFF != 0 && ux&0xFF != 0xFF
+}
+
+func (ux uip) String() string {
+	return fmt.Sprintf("uip(%d)", ux)
 }
