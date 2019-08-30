@@ -33,17 +33,22 @@ func (cx clients) Lookup(now time.Time, ip uip, hwaddr net.HardwareAddr) (*clien
 	return res[0], res[1]
 }
 
-// Inject adds a new client if it doesn't already exist.
-func (cx clients) Inject(now time.Time, c client) error {
-	ip, hw := cx.Lookup(now, c.ip, c.hwaddr)
-	if ip != nil {
+func (cx clients) InjectPermanent(now time.Time, ip uip, hwaddr net.HardwareAddr) error {
+	return cx.injectInternal(now, ip, hwaddr, time.Unix(0, 0), true)
+}
+
+func (cx clients) Inject(now time.Time, ip uip, hwaddr net.HardwareAddr, leasedUntil time.Time) error {
+	return cx.injectInternal(now, ip, hwaddr, leasedUntil, false)
+}
+
+func (cx clients) injectInternal(now time.Time, ip uip, hwaddr net.HardwareAddr, leasedUntil time.Time, permanent bool) error {
+	if ip, hw := cx.Lookup(now, ip, hwaddr); ip != nil {
 		return fmt.Errorf("entry for ip already exists")
-	}
-	if hw != nil {
+	} else if hw != nil {
 		return fmt.Errorf("entry for this hardwareaddr already exists")
 	}
-
-	cx[c.ip.String()] = &c
-	cx[c.hwaddr.String()] = &c
+	c := &client{ip: ip, hwaddr: hwaddr, leasedUntil: leasedUntil, permanent: permanent}
+	cx[c.ip.String()] = c
+	cx[c.hwaddr.String()] = c
 	return nil
 }

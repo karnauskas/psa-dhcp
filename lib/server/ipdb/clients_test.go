@@ -17,23 +17,23 @@ func TestClients(t *testing.T) {
 	c := make(clients)
 
 	// First ever client: inject expected to work.
-	if err := c.Inject(now, client{ip: uip(1), hwaddr: net.HardwareAddr{0x01}, leasedUntil: leaseLong}); err != nil {
+	if err := c.Inject(now, uip(1), net.HardwareAddr{0x01}, leaseLong); err != nil {
 		t.Errorf("Inject #1 failed with %v; wanted nil.", err)
 	}
 	// Same client, must not work.
-	if err := c.Inject(now, client{ip: uip(1), hwaddr: net.HardwareAddr{0x01}, leasedUntil: leaseLong}); err == nil {
+	if err := c.Inject(now, uip(1), net.HardwareAddr{0x01}, leaseLong); err == nil {
 		t.Errorf("Inject #2 failed with nil; wanted non-nil.")
 	}
 	// Same client uip, must not work.
-	if err := c.Inject(now, client{ip: uip(1), hwaddr: net.HardwareAddr{0x02}, leasedUntil: leaseLong}); err == nil {
+	if err := c.Inject(now, uip(1), net.HardwareAddr{0x02}, leaseLong); err == nil {
 		t.Errorf("Inject #3 failed with nil; wanted non-nil.")
 	}
 	// Same hwaddr, must not work.
-	if err := c.Inject(now, client{ip: uip(2), hwaddr: net.HardwareAddr{0x01}, leasedUntil: leaseLong}); err == nil {
+	if err := c.Inject(now, uip(2), net.HardwareAddr{0x01}, leaseLong); err == nil {
 		t.Errorf("Inject #4 failed with nil; wanted non-nil.")
 	}
 	// Completely new client, inject should work.
-	if err := c.Inject(now, client{ip: uip(9), hwaddr: net.HardwareAddr{0x99}, leasedUntil: leaseShort}); err != nil {
+	if err := c.Inject(now, uip(9), net.HardwareAddr{0x99}, leaseShort); err != nil {
 		t.Errorf("Inject #5 failed with %v; wanted nil.", err)
 	}
 
@@ -59,11 +59,11 @@ func TestPermanent(t *testing.T) {
 	c := make(clients)
 
 	// Permanent client with short TTL.
-	if err := c.Inject(now, client{ip: uip(9), hwaddr: net.HardwareAddr{0x99}, leasedUntil: leaseShort, permanent: true}); err != nil {
+	if err := c.InjectPermanent(now, uip(9), net.HardwareAddr{0x99}); err != nil {
 		t.Errorf("Injecting permanent client failed with %v; wanted nil.", err)
 	}
 	// Add new client while the permanent one should already be expired; still must fail.
-	if err := c.Inject(then, client{ip: uip(9), hwaddr: net.HardwareAddr{0x99}, leasedUntil: leaseShort}); err == nil {
+	if err := c.Inject(then, uip(9), net.HardwareAddr{0x99}, leaseShort); err == nil {
 		t.Errorf("Injecting permanent but expired client returned nil, wanted non-nil.")
 	}
 
@@ -80,10 +80,10 @@ func TestPermanent(t *testing.T) {
 func TestExpireInject(t *testing.T) {
 	c := make(clients)
 
-	if err := c.Inject(now, client{ip: uip(9), hwaddr: net.HardwareAddr{0x99}, leasedUntil: leaseShort}); err != nil {
+	if err := c.Inject(now, uip(9), net.HardwareAddr{0x99}, leaseShort); err != nil {
 		t.Errorf("Injecting client failed with %v; wanted nil.", err)
 	}
-	if err := c.Inject(then, client{ip: uip(9), hwaddr: net.HardwareAddr{0x99}, leasedUntil: leaseShort}); err != nil {
+	if err := c.Inject(then, uip(9), net.HardwareAddr{0x99}, leaseShort); err != nil {
 		t.Errorf("Injecting 2nd client failed with %v; wanted nil.", err)
 	}
 }
