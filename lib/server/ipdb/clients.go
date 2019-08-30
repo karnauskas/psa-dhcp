@@ -52,3 +52,20 @@ func (cx clients) injectInternal(now time.Time, ip uip, hwaddr net.HardwareAddr,
 	cx[c.hwaddr.String()] = c
 	return nil
 }
+
+func (cx clients) SetLease(now time.Time, ip uip, hwaddr net.HardwareAddr, leasedUntil time.Time) error {
+	if ip, hw := cx.Lookup(now, ip, hwaddr); ip == nil {
+		return fmt.Errorf("ip does not exist")
+	} else if hw == nil {
+		return fmt.Errorf("hwaddr does not exist")
+	} else if ip != hw {
+		return fmt.Errorf("ip != hwaddr")
+	} else {
+		ip.leasedUntil = leasedUntil
+		return nil
+	}
+}
+
+func (cx clients) Expire(now time.Time, ip uip, hwaddr net.HardwareAddr) error {
+	return cx.SetLease(now, ip, hwaddr, time.Unix(0, 0))
+}

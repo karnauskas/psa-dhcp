@@ -87,3 +87,36 @@ func TestExpireInject(t *testing.T) {
 		t.Errorf("Injecting 2nd client failed with %v; wanted nil.", err)
 	}
 }
+
+func TestLeaseSet(t *testing.T) {
+	c := make(clients)
+
+	if err := c.Inject(now, uip(9), net.HardwareAddr{0x99}, leaseShort); err != nil {
+		t.Errorf("Injecting client failed with %v; wanted nil.", err)
+	}
+	if err := c.SetLease(now, uip(9), net.HardwareAddr{0x99}, leaseLong); err != nil {
+		t.Errorf("SetLease failed with %v; wanted nil.", err)
+	}
+	// Test wrong params
+	if err := c.SetLease(now, uip(9), net.HardwareAddr{0x91}, leaseLong); err == nil {
+		t.Errorf("SetLease with invalid hwaddr worked, wanted err")
+	}
+	if err := c.SetLease(now, uip(8), net.HardwareAddr{0x99}, leaseLong); err == nil {
+		t.Errorf("SetLease with invalid ip worked, wanted err")
+	}
+	if err := c.SetLease(now, uip(8), net.HardwareAddr{0x91}, leaseLong); err == nil {
+		t.Errorf("SetLease with invalid ip and hwaddr worked, wanted err")
+	}
+	// Now lookup at later time.
+	if a, b := c.Lookup(then, uip(9), net.HardwareAddr{0x99}); a == nil || a != b {
+		t.Errorf("Lookup of extended lease failed")
+	}
+	// ..and expire it.
+	if err := c.Expire(now, uip(9), net.HardwareAddr{0x99}); err != nil {
+		t.Errorf("Expire failed")
+	}
+	// That should now fail
+	if a, b := c.Lookup(then, uip(9), net.HardwareAddr{0x99}); a != nil || b != nil {
+		t.Errorf("Lookup of expire entry did not fail?!")
+	}
+}
