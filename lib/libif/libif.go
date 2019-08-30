@@ -1,6 +1,7 @@
 package libif
 
 import (
+	"fmt"
 	"net"
 	"time"
 
@@ -64,6 +65,24 @@ func Unconfigure(iface *net.Interface) error {
 		}
 	}
 	return nil
+}
+
+func InterfaceAddr(iface *net.Interface) (net.IP, error) {
+	link, err := setupNL(iface)
+	if err != nil {
+		return nil, err
+	}
+
+	if addrs, err := netlink.AddrList(link, netlink.FAMILY_V4); err != nil {
+		return nil, err
+	} else {
+		for _, addr := range addrs {
+			if addr.Label == iface.Name {
+				return addr.IP, nil
+			}
+		}
+	}
+	return nil, fmt.Errorf("no ipv4 addr found on interface")
 }
 
 // defaultRoute returns the currently configured IPv4 route.
