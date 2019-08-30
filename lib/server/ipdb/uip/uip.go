@@ -1,20 +1,20 @@
-package ipdb
+package uip
 
 import (
 	"fmt"
 	"net"
 )
 
-type uip uint32
+type Uip uint32
 
-func (ux uip) toV4() net.IP {
+func (ux Uip) ToV4() net.IP {
 	return net.IPv4(byte(ux>>24)&0xFF, byte(ux>>16)&0xFF, byte(ux>>8)&0xFF, byte(ux)&0xFF)
 }
 
-func (ux uip) valid() bool {
+func (ux Uip) Valid() bool {
 	return ux&0xFF != 0 && ux&0xFF != 0xFF
 }
 
-func (ux uip) String() string {
+func (ux Uip) String() string {
 	return fmt.Sprintf("uip(%d)", ux)
 }
