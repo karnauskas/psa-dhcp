@@ -20,7 +20,7 @@ type DecodedOptions struct {
 	RenewalDuration        time.Duration
 	RebindDuration         time.Duration
 	DomainName             string
-	ClientIdentifier       string
+	ClientIdentifier       []byte
 	Message                string
 	ParametersList         []uint8
 }
@@ -58,7 +58,7 @@ func DecodeOptions(opts []DHCPOpt) DecodedOptions {
 		case OptRebindDuration:
 			d.RebindDuration = toDuration(o.Data)
 		case OptClientIdentifier:
-			d.ClientIdentifier = toString(o.Data)
+			d.ClientIdentifier = o.Data
 		case OptParametersList:
 			d.ParametersList = o.Data
 
