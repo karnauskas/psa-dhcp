@@ -16,5 +16,5 @@ func (ux Uip) Valid() bool {
 }
 
 func (ux Uip) String() string {
-	return fmt.Sprintf("uip(%d)", ux)
+	return fmt.Sprintf("uip(%x)", uint32(ux))
 }
