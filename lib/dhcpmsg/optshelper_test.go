@@ -67,7 +67,7 @@ func TestDecodeOptions(t *testing.T) {
 			want: DecodedOptions{
 				DomainName:       "foo",
 				Message:          "xxyyzz",
-				ClientIdentifier: "abcd",
+				ClientIdentifier: []byte("abcd"),
 			},
 		}, {
 			name: "time",
