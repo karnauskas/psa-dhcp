@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"gitlab.com/adrian_blx/psa-dhcp/lib/server/ipdb/clients"
+	d "gitlab.com/adrian_blx/psa-dhcp/lib/server/ipdb/duid"
 	"gitlab.com/adrian_blx/psa-dhcp/lib/server/ipdb/uip"
 )
 
@@ -28,11 +29,11 @@ func New(network net.IP, netmask net.IPMask) (*IPDB, error) {
 	return &IPDB{from: from, to: to, clients: clients.NewClients()}, nil
 }
 
-func (ix *IPDB) LookupClientByHwAddr(hwaddr net.HardwareAddr) (net.IP, error) {
+func (ix *IPDB) LookupClientByDuid(duid d.Duid) (net.IP, error) {
 	ix.Lock()
 	defer ix.Unlock()
 
-	_, res := ix.clients.Lookup(time.Now(), uip.Uip(0), hwaddr)
+	_, res := ix.clients.Lookup(time.Now(), uip.Uip(0), duid)
 	if res == nil {
 		return nil, fmt.Errorf("no such client found")
 	}
@@ -40,8 +41,8 @@ func (ix *IPDB) LookupClientByHwAddr(hwaddr net.HardwareAddr) (net.IP, error) {
 }
 
 // AddPermanentClient injects a new client and marks it as permanent.
-// While the lease may expire, the ip<>hwaddr mapping will not.
-func (ix *IPDB) AddPermanentClient(ip net.IP, hwaddr net.HardwareAddr) error {
+// While the lease may expire, the ip<>duid mapping will not.
+func (ix *IPDB) AddPermanentClient(ip net.IP, duid d.Duid) error {
 	ix.Lock()
 	defer ix.Unlock()
 
@@ -49,11 +50,11 @@ func (ix *IPDB) AddPermanentClient(ip net.IP, hwaddr net.HardwareAddr) error {
 	if err != nil {
 		return err
 	}
-	return ix.clients.InjectPermanent(time.Now(), n, hwaddr)
+	return ix.clients.InjectPermanent(time.Now(), n, duid)
 }
 
 // SetClient updates the state of a client, inserting it if needed.
-func (ix *IPDB) UpdateClient(ip net.IP, hwaddr net.HardwareAddr, ttl time.Duration) error {
+func (ix *IPDB) UpdateClient(ip net.IP, duid d.Duid, ttl time.Duration) error {
 	ix.Lock()
 	defer ix.Unlock()
 
@@ -65,18 +66,18 @@ func (ix *IPDB) UpdateClient(ip net.IP, hwaddr net.HardwareAddr, ttl time.Durati
 	ltime := now.Add(ttl)
 
 	// First, just try an optimistic set.
-	if ix.clients.SetLease(now, n, hwaddr, ltime) == nil {
+	if ix.clients.SetLease(now, n, duid, ltime) == nil {
 		return nil
 	}
 	// If this failed, we might need to inject first.
-	if err := ix.clients.Inject(now, n, hwaddr, ltime); err != nil {
+	if err := ix.clients.Inject(now, n, duid, ltime); err != nil {
 		return err
 	}
-	return ix.clients.SetLease(now, n, hwaddr, ltime)
+	return ix.clients.SetLease(now, n, duid, ltime)
 }
 
-// FindIP attempts to find an IP for given hwaddr, having a bias for the suggested IP.
-func (ix *IPDB) FindIP(ctx context.Context, isFree func(context.Context, net.IP, net.HardwareAddr) bool, ip net.IP, hwaddr net.HardwareAddr) (net.IP, error) {
+// FindIP attempts to find an IP for given duid, having a bias for the suggested IP.
+func (ix *IPDB) FindIP(ctx context.Context, isFree func(context.Context, net.IP) bool, ip net.IP, duid d.Duid) (net.IP, error) {
 	ix.Lock()
 	defer ix.Unlock()
 
@@ -86,10 +87,10 @@ func (ix *IPDB) FindIP(ctx context.Context, isFree func(context.Context, net.IP,
 		n = uip.Uip(0)
 	}
 
-	oip, ohwaddr := ix.clients.Lookup(time.Now(), n, hwaddr)
-	if ohwaddr != nil {
-		// This hardware addr already has a lease.
-		return ohwaddr.Uip().ToV4(), nil
+	oip, oduid := ix.clients.Lookup(time.Now(), n, duid)
+	if oduid != nil {
+		// This duid already has a lease.
+		return oduid.Uip().ToV4(), nil
 	}
 
 	p := rand.Perm(1 + int(ix.to-ix.from))
@@ -103,7 +104,7 @@ func (ix *IPDB) FindIP(ctx context.Context, isFree func(context.Context, net.IP,
 		}
 		picked := ix.from + uip.Uip(v)
 		e, _ := ix.clients.Lookup(time.Now(), picked, nil)
-		if e == nil && picked.Valid() && isFree(ctx, picked.ToV4(), hwaddr) {
+		if e == nil && picked.Valid() && isFree(ctx, picked.ToV4()) {
 			return picked.ToV4(), nil
 		}
 	}

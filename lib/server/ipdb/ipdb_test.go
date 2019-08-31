@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	d "gitlab.com/adrian_blx/psa-dhcp/lib/server/ipdb/duid"
 	"gitlab.com/adrian_blx/psa-dhcp/lib/server/ipdb/uip"
 )
 
@@ -15,31 +16,31 @@ func TestOperations(t *testing.T) {
 		t.Fatalf("Could not create ipdb: %v", err)
 	}
 
-	if err := db.AddPermanentClient(net.IPv4(192, 168, 2, 1), net.HardwareAddr{0x1}); err != nil {
+	if err := db.AddPermanentClient(net.IPv4(192, 168, 2, 1), d.Duid{0x1}); err != nil {
 		t.Errorf("AddPermanentClient(192.168.2.1) failed with %v", err)
 	}
 	// Both IP and MAC are now reserved
-	if err := db.UpdateClient(net.IPv4(192, 168, 2, 1), net.HardwareAddr{0x99}, 1*time.Minute); err == nil {
+	if err := db.UpdateClient(net.IPv4(192, 168, 2, 1), d.Duid{0x99}, 1*time.Minute); err == nil {
 		t.Errorf("UpdateClient(#wrong mac) did NOT fail")
 	}
-	if err := db.UpdateClient(net.IPv4(192, 168, 2, 99), net.HardwareAddr{0x1}, 1*time.Minute); err == nil {
+	if err := db.UpdateClient(net.IPv4(192, 168, 2, 99), d.Duid{0x1}, 1*time.Minute); err == nil {
 		t.Errorf("UpdateClient(#wrong ip) did NOT fail")
 	}
 
 	// But we should be able to inject other clients
-	if err := db.UpdateClient(net.IPv4(192, 168, 2, 33), net.HardwareAddr{0x33}, 1*time.Minute); err != nil {
+	if err := db.UpdateClient(net.IPv4(192, 168, 2, 33), d.Duid{0x33}, 1*time.Minute); err != nil {
 		t.Errorf("UpdateClient(#new client) failed with %v", err)
 	}
 	// Updating the old client should also work.
-	if err := db.UpdateClient(net.IPv4(192, 168, 2, 1), net.HardwareAddr{0x1}, 1*time.Minute); err != nil {
+	if err := db.UpdateClient(net.IPv4(192, 168, 2, 1), d.Duid{0x1}, 1*time.Minute); err != nil {
 		t.Errorf("UpdateClient(#permanent client) failed with %v", err)
 	}
 
-	if _, err := db.LookupClientByHwAddr(net.HardwareAddr{0x21}); err == nil {
-		t.Errorf("LookupClientByHwAddr(#invalid mac) did NOT fail")
+	if _, err := db.LookupClientByDuid(d.Duid{0x21}); err == nil {
+		t.Errorf("LookupClientByDuid(#invalid mac) did NOT fail")
 	}
-	if res, err := db.LookupClientByHwAddr(net.HardwareAddr{0x33}); err != nil || !res.Equal(net.IPv4(192, 168, 2, 33)) {
-		t.Errorf("LookupClientByHwAddr(#existing) failed or returned wrong IP. error=%v, ip=%v", err, res)
+	if res, err := db.LookupClientByDuid(d.Duid{0x33}); err != nil || !res.Equal(net.IPv4(192, 168, 2, 33)) {
+		t.Errorf("LookupClientByDuid(#existing) failed or returned wrong IP. error=%v, ip=%v", err, res)
 	}
 }
 
@@ -55,32 +56,32 @@ func TestFindIP(t *testing.T) {
 	ip2 := net.IPv4(192, 168, 0, 2)
 	ip3 := net.IPv4(192, 168, 0, 3)
 	ip4 := net.IPv4(192, 168, 0, 4)
-	isFree := func(ctx context.Context, ip net.IP, hwaddr net.HardwareAddr) bool {
+	isFree := func(ctx context.Context, ip net.IP) bool {
 		return !ip.Equal(ip4)
 	}
 
-	db.AddPermanentClient(ip2, net.HardwareAddr{0x2})
-	db.UpdateClient(ip3, net.HardwareAddr{0x3}, 5*time.Minute)
+	db.AddPermanentClient(ip2, d.Duid{0x2})
+	db.UpdateClient(ip3, d.Duid{0x3}, 5*time.Minute)
 
 	// Permanent client with matching IP.
-	if ip, err := db.FindIP(ctx, isFree, ip2, net.HardwareAddr{0x2}); err != nil || !ip.Equal(ip2) {
+	if ip, err := db.FindIP(ctx, isFree, ip2, d.Duid{0x2}); err != nil || !ip.Equal(ip2) {
 		t.Errorf("FindIP(#permanent1) had error or returned wrong IP. err=%v, ip=%v", err, ip)
 	}
 	// Non matching IP must still return the permanent entry.
-	if ip, err := db.FindIP(ctx, isFree, ip0, net.HardwareAddr{0x2}); err != nil || !ip.Equal(ip2) {
+	if ip, err := db.FindIP(ctx, isFree, ip0, d.Duid{0x2}); err != nil || !ip.Equal(ip2) {
 		t.Errorf("FindIP(#permanent2) had error or returned wrong IP. err=%v, ip=%v", err, ip)
 	}
 
 	// hwaddr 0x03 should ALWAYS get ip3 as it has a lease
 	for i := 0; i < 30; i++ {
-		if ip, err := db.FindIP(ctx, isFree, ip0, net.HardwareAddr{0x3}); err != nil || !ip.Equal(ip3) {
+		if ip, err := db.FindIP(ctx, isFree, ip0, d.Duid{0x3}); err != nil || !ip.Equal(ip3) {
 			t.Errorf("FindIP(#lease ip3) returned wrong result: err=%v, ip=%v", err, ip)
 		}
 	}
 
 	// Random client should never get a leased IP or ip4, which is considered non-free.
 	for i := 0; i < 30; i++ {
-		if ip, err := db.FindIP(ctx, isFree, ip0, net.HardwareAddr{0x99}); err != nil || ip.Equal(ip2) || ip.Equal(ip3) || ip.Equal(ip4) {
+		if ip, err := db.FindIP(ctx, isFree, ip0, d.Duid{0x99}); err != nil || ip.Equal(ip2) || ip.Equal(ip3) || ip.Equal(ip4) {
 			t.Errorf("FindIP(#unleased) returned wrong result: err=%v, ip=%v", err, ip)
 		} else {
 			u, err := db.toUip(ip)
