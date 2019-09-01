@@ -11,7 +11,6 @@ func AssembleOffer(xid uint32, srcIP, dstIP net.IP, dstMAC net.HardwareAddr, opt
 		Op:        dhcpmsg.OpReply,
 		Xid:       xid,
 		Htype:     dhcpmsg.HtypeETHER,
-		Hops:      1,
 		YourIP:    dstIP,
 		ClientMAC: dstMAC,
 		Cookie:    dhcpmsg.DHCPCookie,

@@ -11,7 +11,6 @@ func AssembleNACK(xid uint32, srcIP net.IP, dstMAC net.HardwareAddr) []byte {
 		Op:        dhcpmsg.OpReply,
 		Xid:       xid,
 		Htype:     dhcpmsg.HtypeETHER,
-		Hops:      1,
 		ClientMAC: dstMAC,
 		Cookie:    dhcpmsg.DHCPCookie,
 		Options: []dhcpmsg.DHCPOpt{
