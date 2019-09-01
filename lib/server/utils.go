@@ -26,7 +26,7 @@ func (sx *server) arpVerify(hw net.HardwareAddr) func(context.Context, net.IP) b
 }
 
 // sendUnicast sends given payload to an hwaddr / ip destination.
-func (sx *server) sendUnicast(hwaddr net.HardwareAddr, dst net.IP, payload []byte) error {
+func (sx *server) sendUnicast(hwaddr net.HardwareAddr, payload []byte) error {
 	ss, err := rsocks.GetUnicastSendSock(sx.iface, hwaddr)
 	if err != nil {
 		return err
@@ -40,6 +40,10 @@ func (sx *server) getDuid(hwaddr net.HardwareAddr, cid []byte) d.Duid {
 	// This duid would only exist in ipdb for clients with a static lease
 	sduid := duidFromHwAddr(hwaddr)
 	if _, err := sx.ipdb.LookupClientByDuid(sduid); err == nil {
+		return sduid
+	}
+	if len(cid) < 4 {
+		sx.l.Printf("Client %s did not report a client identifier?! Using self generated duid %s", hwaddr, sduid)
 		return sduid
 	}
 	// -> no static lease? -> use client given identifier as duid.
