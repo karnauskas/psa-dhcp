@@ -18,7 +18,7 @@ type IPDB struct {
 	sync.RWMutex
 	netFrom uip.Uip // Lowest IP we manage.
 	netTo   uip.Uip // Highest IP we manage.
-	dynFrom uip.Uip // Lowest IP to hand out while searching for IPs.
+	dynFrom uip.Uip // Lowest IP to hand out while searching for IPs. If dynFrom and dynTo are set to zero, dynamic searches are disabled.
 	dynTo   uip.Uip // Highest IP to hand out while searching for IPs.
 	clients *clients.Clients
 }
@@ -59,6 +59,15 @@ func (ix *IPDB) SetDynamicRange(begin, end net.IP) error {
 	ix.dynFrom = b
 	ix.dynTo = e
 	return nil
+}
+
+// DisableDynamic configures ipdb to only hand out pre-configured (or still existing) leases.
+// No search will be performed for dynamic leases.
+func (ix *IPDB) DisableDynamic() {
+	ix.Lock()
+	defer ix.Unlock()
+	ix.dynFrom = 0
+	ix.dynTo = 0
 }
 
 func (ix *IPDB) LookupClientByDuid(duid d.Duid) (net.IP, error) {
@@ -123,6 +132,10 @@ func (ix *IPDB) FindIP(ctx context.Context, isFree func(context.Context, net.IP)
 	if oduid != nil {
 		// This duid already has a lease.
 		return oduid.Uip().ToV4(), nil
+	}
+
+	if ix.dynTo == 0 && ix.dynFrom == 0 {
+		return nil, fmt.Errorf("dynamic searches are disabled")
 	}
 
 	p := rand.Perm(1 + int(ix.dynTo-ix.dynFrom))

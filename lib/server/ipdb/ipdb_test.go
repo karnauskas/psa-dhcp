@@ -148,6 +148,17 @@ func TestSetDynamicRange(t *testing.T) {
 			t.Errorf("FindIP(#loop) = %v, %v; wanted nil err and IP to be %s or %s", ip, err, ip3, ip4)
 		}
 	}
+
+	// Now, disable any dynamic searches
+	db.DisableDynamic()
+	// This should still work: the permanent lease is still valid
+	if ip, err := db.FindIP(ctx, isFree, ip0, d.Duid{0x02}); err != nil || !ip.Equal(ip2) {
+		t.Errorf("FindIP(0x2-duid) = %v, %v, wanted nil, %v", err, ip, ip2)
+	}
+	// But that should fail:
+	if _, err := db.FindIP(ctx, isFree, ip0, d.Duid{0x77}); err == nil {
+		t.Errorf("FindIP(0x77-duid) returned nil error, wanted non-nil")
+	}
 }
 
 func TestToUip(t *testing.T) {
