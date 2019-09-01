@@ -98,6 +98,58 @@ func TestFindIP(t *testing.T) {
 	}
 }
 
+func TestSetDynamicRange(t *testing.T) {
+	// Range is limited to 192.168.0.1 - 192.168.0.6
+	db, err := New(net.IPv4(192, 168, 0, 1), net.IPv4Mask(255, 255, 255, 248))
+	if err != nil {
+		t.Fatalf("failed to create IPdb")
+	}
+
+	ctx := context.Background()
+	ip0 := net.IPv4(0, 0, 0, 0)
+	ip2 := net.IPv4(192, 168, 0, 2)
+	ip3 := net.IPv4(192, 168, 0, 3)
+	ip4 := net.IPv4(192, 168, 0, 4)
+	isFree := func(ctx context.Context, ip net.IP) bool {
+		return true
+	}
+
+	if err := db.SetDynamicRange(net.IPv4(192, 168, 0, 0), ip2); err == nil {
+		t.Errorf("SetDynamicRange(#badstart) was expected to fail, but did not")
+	}
+	if err := db.SetDynamicRange(ip2, net.IPv4(192, 168, 0, 7)); err == nil {
+		t.Errorf("SetDynamicRange(#badend) was expected to fail, but did not")
+	}
+	if err := db.SetDynamicRange(net.IPv4(192, 168, 0, 1), net.IPv4(192, 168, 0, 6)); err != nil {
+		t.Errorf("SetDynamicRange(#godrange) = %v, wanted nil err", err)
+	}
+
+	// Add permanent lease for IP2 and restrict range to it.
+	if err := db.AddPermanentClient(ip2, d.Duid{0x02}); err != nil {
+		t.Errorf("AddPermanentClient(ip2) = %v, wanted nil err", err)
+	}
+	if err := db.SetDynamicRange(ip2, ip2); err != nil {
+		t.Errorf("SetDynamicRange(ip2) = %v, wanted nil err", err)
+	}
+
+	// This should return IP2 as it has a permanent lease.
+	if ip, err := db.FindIP(ctx, isFree, ip0, d.Duid{0x02}); err != nil || !ip.Equal(ip2) {
+		t.Errorf("FindIP(0x2-duid) = %v, %v, wanted nil, %v", err, ip, ip2)
+	}
+	// But you shall fail:
+	if _, err := db.FindIP(ctx, isFree, ip2, d.Duid{0x99}); err == nil {
+		t.Errorf("FindIP(0x99-duid) returned nil, wanted non-nil")
+	}
+
+	// This should only return ip3 or ip4 as ip2 has a lease and everything else is out of range.
+	db.SetDynamicRange(net.IPv4(192, 168, 0, 2), net.IPv4(192, 168, 0, 4))
+	for i := 0; i < 30; i++ {
+		if ip, err := db.FindIP(ctx, isFree, ip0, d.Duid{0x91}); err != nil || !(ip.Equal(ip3) || ip.Equal(ip4)) {
+			t.Errorf("FindIP(#loop) = %v, %v; wanted nil err and IP to be %s or %s", ip, err, ip3, ip4)
+		}
+	}
+}
+
 func TestToUip(t *testing.T) {
 	db, err := New(net.IPv4(10, 0, 0, 0), net.IPv4Mask(255, 0, 0, 0))
 	if err != nil {

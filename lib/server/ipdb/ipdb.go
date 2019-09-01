@@ -16,8 +16,10 @@ import (
 
 type IPDB struct {
 	sync.RWMutex
-	from    uip.Uip // Lowest IP we manage (probably the network)
-	to      uip.Uip // Highest IP we manage (might be bcast)
+	netFrom uip.Uip // Lowest IP we manage.
+	netTo   uip.Uip // Highest IP we manage.
+	dynFrom uip.Uip // Lowest IP to hand out while searching for IPs.
+	dynTo   uip.Uip // Highest IP to hand out while searching for IPs.
 	clients *clients.Clients
 }
 
@@ -26,7 +28,37 @@ func New(network net.IP, netmask net.IPMask) (*IPDB, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &IPDB{from: from, to: to, clients: clients.NewClients()}, nil
+	return &IPDB{
+		netFrom: from,
+		netTo:   to,
+		dynFrom: from,
+		dynTo:   to,
+		clients: clients.NewClients(),
+	}, nil
+}
+
+// SetDynamicRange configures the pool range to find dynamic IPs.
+func (ix *IPDB) SetDynamicRange(begin, end net.IP) error {
+	ix.Lock()
+	defer ix.Unlock()
+
+	b, err := ix.toUip(begin)
+	if err != nil {
+		return err
+	}
+
+	e, err := ix.toUip(end)
+	if err != nil {
+		return err
+	}
+
+	if b > e {
+		// toUip already checked the network range, so we only need to validate sanity.
+		return fmt.Errorf("begin in dynamic range can not be larget than end")
+	}
+	ix.dynFrom = b
+	ix.dynTo = e
+	return nil
 }
 
 func (ix *IPDB) LookupClientByDuid(duid d.Duid) (net.IP, error) {
@@ -93,16 +125,16 @@ func (ix *IPDB) FindIP(ctx context.Context, isFree func(context.Context, net.IP)
 		return oduid.Uip().ToV4(), nil
 	}
 
-	p := rand.Perm(1 + int(ix.to-ix.from))
+	p := rand.Perm(1 + int(ix.dynTo-ix.dynFrom))
 	if oip == nil {
-		p = append([]int{int(n - ix.from)}, p...)
+		p = append([]int{int(n - ix.dynFrom)}, p...)
 	}
 
 	for _, v := range p {
 		if ctx.Err() != nil {
 			break
 		}
-		picked := ix.from + uip.Uip(v)
+		picked := ix.dynFrom + uip.Uip(v)
 		e, _ := ix.clients.Lookup(time.Now(), picked, nil)
 		if e == nil && picked.Valid() && isFree(ctx, picked.ToV4()) {
 			return picked.ToV4(), nil
@@ -119,7 +151,7 @@ func (ix *IPDB) toUip(ip net.IP) (uip.Uip, error) {
 		n = uip.Uip(binary.BigEndian.Uint32(v4))
 	}
 
-	if n < ix.from || n > ix.to {
+	if n < ix.netFrom || n > ix.netTo {
 		return 0, fmt.Errorf("ip is not in managed range")
 	}
 	return n, nil
