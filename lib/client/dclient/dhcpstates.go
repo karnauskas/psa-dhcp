@@ -61,7 +61,8 @@ func (dx *dclient) runStateRenewing(nextState, failState int) {
 		dx.lastOpts = lo
 		dx.state = nextState
 	} else if err == errWasNack {
-		dx.panicReset("received NACK during renew")
+		dx.l.Printf("received NACK during renew, purging interface")
+		dx.state = statePurgeInterface
 	} else {
 		dx.state = failState
 	}
@@ -75,7 +76,8 @@ func (dx *dclient) runStateRebinding(nextState, failState int) {
 		dx.lastOpts = lo
 		dx.state = nextState
 	} else if err == errWasNack {
-		dx.panicReset("received NACK during rebind")
+		dx.l.Printf("received NACK during rebind, purging interface")
+		dx.state = statePurgeInterface
 	} else {
 		dx.state = failState
 	}
