@@ -27,28 +27,22 @@ message ServerConfig {
 	bool static_only = 8;
 
 	// Static hwaddr -> config mapping.
-	map<string, ClientConfig> overrides = 9;
+	map<string, ClientConfig> client = 9;
 }
 
 message ClientConfig {
-	// Requests from this host will be ignored.
-	bool ignored = 1;
-
 	// IP we will try to assign to this host.
-	string ip = 2;
-
-	// Netmask used during assignment.
-	string netmask = 3;
+	string ip = 1;
 
 	// Router to announce.
-	string router = 4;
+	string router = 2;
 
 	// Hostname to give to client.
-	string hostname = 5;
+	string hostname = 3;
 
 	// DNS to announce.
-	repeated string dns = 6;
+	repeated string dns = 4;
 
 	// NTP servers to announce.
-	repeated string ntp = 7;
+	repeated string ntp = 5;
 }

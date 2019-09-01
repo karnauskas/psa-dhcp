@@ -15,16 +15,19 @@ import (
 )
 
 type server struct {
-	ctx    context.Context // Context used by this server.
-	l      *log.Logger     // Logger.
-	iface  *net.Interface  // Interface we are working on.
-	selfIP net.IP          // Our own IP (used as server identifier).
-	ipdb   *ipdb.IPDB      // IP database instance.
-	lopts  leaseOptions    // Default options for leases.
+	ctx       context.Context         // Context used by this server.
+	l         *log.Logger             // Logger.
+	iface     *net.Interface          // Interface we are working on.
+	selfIP    net.IP                  // Our own IP (used as server identifier).
+	ipdb      *ipdb.IPDB              // IP database instance.
+	lopts     leaseOptions            // Default options for leases.
+	overrides map[string]leaseOptions // Static client configuration.
 }
 
 type leaseOptions struct {
+	ip            net.IP        // Static IP of a lease.
 	domain        string        // Domain to announce.
+	hostname      string        // Hostname to use.
 	netmask       net.IPMask    // Netmask of the network we announce.
 	router        net.IP        // Router to use.
 	dns           []net.IP      // List of DNS suggested to the client.
@@ -71,11 +74,30 @@ func New(ctx context.Context, l *log.Logger, iface *net.Interface, conf *pb.Serv
 		l.Printf("# disabling dynamic IP assignment (static_only is 'true'), only static leases will be handed out.")
 	}
 
+	overrides := make(map[string]leaseOptions)
+	for k, v := range conf.GetClient() {
+		hwaddr, err := net.ParseMAC(k)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse hwaddr '%s': %v", k, err)
+		}
+		oopts := *lopts
+		setClientOverrides(&oopts, v)
+		if oopts.ip != nil {
+			if err := db.AddPermanentClient(oopts.ip, duidFromHwAddr(hwaddr)); err != nil {
+				return nil, fmt.Errorf("could not create permanent lease for %v -> %v: %v", hwaddr, oopts.ip, err)
+			}
+		}
+		if _, ok := overrides[hwaddr.String()]; ok {
+			return nil, fmt.Errorf("duplicate permanent lease for %v", hwaddr)
+		}
+		overrides[hwaddr.String()] = oopts
+	}
+
 	// Give ourselfs a permanent fake lease.
 	if err := db.AddPermanentClient(selfIP, duidFromHwAddr(iface.HardwareAddr)); err != nil {
 		return nil, fmt.Errorf("failed to add own IP (%s) to configured net (%s): %v", selfIP, *ipnet, err)
 	}
-	return &server{ctx: ctx, l: l, iface: iface, selfIP: selfIP, ipdb: db, lopts: *lopts}, nil
+	return &server{ctx: ctx, l: l, iface: iface, selfIP: selfIP, ipdb: db, lopts: *lopts, overrides: overrides}, nil
 }
 
 // dhcpOptions assembles a list of dhcp options from the server configuration.

@@ -18,7 +18,6 @@ func parseConfig(conf *pb.ServerConfig) (*leaseOptions, *net.IPNet, error) {
 	lopts := &leaseOptions{
 		domain:  conf.GetDomain(),
 		netmask: ipnet.Mask,
-		router:  net.ParseIP(conf.GetRouter()),
 	}
 
 	if ld, err := time.ParseDuration(conf.GetLeaseDuration()); err != nil {
@@ -29,23 +28,67 @@ func parseConfig(conf *pb.ServerConfig) (*leaseOptions, *net.IPNet, error) {
 		lopts.leaseDuration = ld
 	}
 
-	for _, x := range conf.GetDns() {
-		if v := net.ParseIP(x); v == nil || v.To4() == nil {
-			return nil, nil, fmt.Errorf("failed to parse dns entry '%s' as IPv4", x)
-		} else {
-			lopts.dns = append(lopts.dns, v)
-		}
-	}
-	for _, x := range conf.GetNtp() {
-		if v := net.ParseIP(x); v == nil || v.To4() == nil {
-			return nil, nil, fmt.Errorf("failed to parse ntp entry '%s' as IPv4", x)
-		} else {
-			lopts.ntp = append(lopts.ntp, v)
-		}
+	if router, err := ipv4(conf.GetRouter()); err != nil {
+		return nil, nil, err
+	} else if len(router) == 1 {
+		lopts.router = router[0]
 	}
 
-	// FIXME: do dynamic_range
-	// FIXME: do static_only
-	// FIXME: do overrides
+	if dns, err := ipv4(conf.GetDns()...); err != nil {
+		return nil, nil, err
+	} else {
+		lopts.dns = dns
+	}
+
+	if ntp, err := ipv4(conf.GetNtp()...); err != nil {
+		return nil, nil, err
+	} else {
+		lopts.ntp = ntp
+	}
 	return lopts, ipnet, nil
+}
+
+func setClientOverrides(opts *leaseOptions, client *pb.ClientConfig) error {
+	if ip, err := ipv4(client.GetIp()); err != nil {
+		return err
+	} else if len(ip) == 1 {
+		opts.ip = ip[0]
+	}
+
+	if router, err := ipv4(client.GetRouter()); err != nil {
+		return err
+	} else if len(router) == 1 {
+		opts.router = router[0]
+	}
+
+	if dns, err := ipv4(client.GetDns()...); err != nil {
+		return err
+	} else {
+		opts.dns = dns
+	}
+
+	if ntp, err := ipv4(client.GetNtp()...); err != nil {
+		return err
+	} else {
+		opts.ntp = ntp
+	}
+
+	opts.hostname = client.GetHostname()
+	return nil
+}
+
+func ipv4(list ...string) ([]net.IP, error) {
+	if len(list) == 1 && list[0] == "" {
+		return nil, nil
+	}
+
+	var res []net.IP
+	for _, ip := range list {
+		if x := net.ParseIP(ip); x != nil && x.To4() != nil {
+			res = append(res, x.To4())
+		} else {
+			return nil, fmt.Errorf("%s is not a valid ipv4", x)
+		}
+	}
+	return res, nil
 }
