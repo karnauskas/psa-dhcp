@@ -59,6 +59,9 @@ func TestAssemble(t *testing.T) {
 					OptionIPAddressLeaseDuration(30 * time.Minute),
 					OptionSubnetMask(net.IPv4Mask(255, 255, 255, 0)),
 					OptionRouter(net.IPv4(127, 0, 0, 29)),
+					OptionDomainName("foo"),
+					OptionDNS(net.IPv4(192, 168, 1, 1), net.IPv4(192, 168, 1, 2)),
+					OptionNTP(net.IPv4(192, 168, 4, 1), net.IPv4(192, 168, 4, 2)),
 				},
 			},
 			want: []byte{
@@ -87,6 +90,9 @@ func TestAssemble(t *testing.T) {
 				0x33, 0x04, 0x00, 0x00, 0x07, 0x08, // Lease Duration
 				0x01, 0x04, 0xff, 0xff, 0xff, 0x00, // Subnet mask
 				0x03, 0x04, 0x7f, 0x00, 0x00, 0x1d, // Router
+				0x0f, 0x03, 'f', 'o', 'o', // Domain Name
+				0x06, 0x08, 192, 168, 1, 1, 192, 168, 1, 2, // DNS
+				0x2a, 0x08, 192, 168, 4, 1, 192, 168, 4, 2, // NTP
 				0xff,
 			},
 		},

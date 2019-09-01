@@ -85,6 +85,10 @@ func OptionHostname(n string) DHCPOpt {
 	return DHCPOpt{Option: OptHostname, Data: []byte(n)}
 }
 
+func OptionDomainName(n string) DHCPOpt {
+	return DHCPOpt{Option: OptDomainName, Data: []byte(n)}
+}
+
 func OptionServerIdentifier(ip net.IP) DHCPOpt {
 	return optIP(OptServerIdentifier, ip)
 }
@@ -97,10 +101,20 @@ func OptionRouter(ip net.IP) DHCPOpt {
 	return optIP(OptRouter, ip)
 }
 
-func optIP(ot uint8, ip net.IP) DHCPOpt {
-	b := make([]byte, 4)
-	if x := ip.To4(); x != nil {
-		copy(b[0:4], x[0:4])
+func OptionDNS(ip ...net.IP) DHCPOpt {
+	return optIP(OptDNS, ip...)
+}
+
+func OptionNTP(ip ...net.IP) DHCPOpt {
+	return optIP(OptNTP, ip...)
+}
+
+func optIP(ot uint8, ip ...net.IP) DHCPOpt {
+	b := make([]byte, 4*len(ip))
+	for i, x := range ip {
+		if v4 := x.To4(); v4 != nil {
+			copy(b[i*4:], v4[0:4])
+		}
 	}
 	return DHCPOpt{Option: ot, Data: b}
 }

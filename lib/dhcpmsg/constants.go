@@ -34,6 +34,7 @@ const (
 	OptDomainName             = 15
 	OptInterfaceMTU           = 26
 	OptBroadcastAddress       = 28
+	OptNTP                    = 42
 	OptRequestedIP            = 50
 	OptIPAddressLeaseDuration = 51
 	OptMessageType            = 53
