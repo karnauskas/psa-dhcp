@@ -24,6 +24,7 @@ type server struct {
 	overrides map[string]lo.LeaseOptions // Static client configuration.
 }
 
+// New constructs a new dhcp server instance.
 func New(ctx context.Context, l *log.Logger, iface *net.Interface, conf *pb.ServerConfig) (*server, error) {
 	selfIP, err := libif.InterfaceAddr(iface)
 	if err != nil {
@@ -63,6 +64,7 @@ func New(ctx context.Context, l *log.Logger, iface *net.Interface, conf *pb.Serv
 		l.Printf("# disabling dynamic IP assignment (static_only is 'true'), only static leases will be handed out.")
 	}
 
+	// Configure static assignments
 	overrides := make(map[string]lo.LeaseOptions)
 	for k, v := range conf.GetClient() {
 		hwaddr, err := net.ParseMAC(k)
@@ -79,6 +81,7 @@ func New(ctx context.Context, l *log.Logger, iface *net.Interface, conf *pb.Serv
 		if _, ok := overrides[hwaddr.String()]; ok {
 			return nil, fmt.Errorf("duplicate permanent lease for %v", hwaddr)
 		}
+		l.Printf("# static mapping for %s configured.", hwaddr)
 		overrides[hwaddr.String()] = oopts
 	}
 
