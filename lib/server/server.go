@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"strings"
 	"time"
 
 	"gitlab.com/adrian_blx/psa-dhcp/lib/dhcpmsg"
@@ -47,11 +48,27 @@ func New(ctx context.Context, l *log.Logger, iface *net.Interface, conf *pb.Serv
 		return nil, fmt.Errorf("failed to build ipdb: %v", err)
 	}
 
+	// Check dynamic range configuration: It is not part of the lease config but a property of ipdb.
+	if dr := conf.GetDynamicRange(); dr != "" {
+		sr := strings.Split(dr, "-")
+		if len(sr) != 2 {
+			return nil, fmt.Errorf("dynamic_range value '%s' invalid. Expected 'start-end'", dr)
+		}
+		ipa := net.ParseIP(sr[0])
+		ipb := net.ParseIP(sr[1])
+		if ipa == nil || ipb == nil {
+			return nil, fmt.Errorf("dynamic_range has invalid IP range: '%s'", dr)
+		}
+		if err := db.SetDynamicRange(ipa, ipb); err != nil {
+			return nil, fmt.Errorf("failed to configure dynamic_range '%s': %v", dr, err)
+		}
+		l.Printf("# dynamic range restricted to %s", dr)
+	}
+
 	// Give ourselfs a permanent fake lease.
 	if err := db.AddPermanentClient(selfIP, duidFromHwAddr(iface.HardwareAddr)); err != nil {
 		return nil, fmt.Errorf("failed to add own IP (%s) to configured net (%s): %v", selfIP, *ipnet, err)
 	}
-
 	return &server{ctx: ctx, l: l, iface: iface, selfIP: selfIP, ipdb: db, lopts: *lopts}, nil
 }
 
