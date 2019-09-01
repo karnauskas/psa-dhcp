@@ -3,6 +3,7 @@ package replies
 import (
 	"net"
 
+	"gitlab.com/adrian_blx/psa-dhcp/lib/dhcpmsg"
 	"gitlab.com/adrian_blx/psa-dhcp/lib/layer"
 )
 
@@ -18,4 +19,11 @@ func assembleUdp(srcIP, dstIP net.IP, payload []byte) []byte {
 			Data:    payload,
 		}.Assemble(),
 	}.Assemble()
+}
+
+func dstFromFlag(flags uint16, dst net.IP) net.IP {
+	if (flags & dhcpmsg.FlagBroadcast) != 0 {
+		return net.IPv4bcast
+	}
+	return dst
 }

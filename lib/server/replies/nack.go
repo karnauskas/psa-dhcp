@@ -7,7 +7,7 @@ import (
 )
 
 func AssembleNACK(xid uint32, srcIP net.IP, dstMAC net.HardwareAddr) []byte {
-	return assembleUdp(srcIP, net.IPv4(0, 0, 0, 0), dhcpmsg.Message{
+	return assembleUdp(srcIP, net.IPv4bcast, dhcpmsg.Message{
 		Op:        dhcpmsg.OpReply,
 		Xid:       xid,
 		Htype:     dhcpmsg.HtypeETHER,

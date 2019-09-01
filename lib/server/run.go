@@ -42,7 +42,7 @@ func (sx *server) Run() error {
 		if err != nil || dhcp.Op != dhcpmsg.OpRequest {
 			continue
 		}
-		go sx.handleMsg(v4.Source, *dhcp)
+		go sx.handleMsg(v4.Source, v4.Destination, *dhcp)
 	}
 	return nil
 }
