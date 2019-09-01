@@ -78,7 +78,9 @@ func (dx *dclient) Run() error {
 		}
 
 		if !dx.limiter.Allow() {
-			dx.l.Panicf("client went bananas, consumed all tokens!")
+			dx.l.Printf("client went bananas, consumed all tokens! - will exit in 20 sec.")
+			time.Sleep(20 * time.Second)
+			dx.l.Panicf("EXITING AFTER FATAL ERROR: CLIENT CONSUMED ALL TOKENS!")
 		}
 		// break if main context is done.
 		if err := dx.ctx.Err(); err != nil {
@@ -150,9 +152,6 @@ func (dx *dclient) advanceState(deadline time.Time, vrfy vrfyFunc, sender sender
 	msg, opts, err := catchReply(ctx, dx.iface, vrfy)
 
 	if err != nil {
-		// If there was an error, wait until the context expires (if we might have a
-		// sock setup error) to avoid flooding the line.
-		<-ctx.Done()
 		return msg, opts, err
 	}
 	return msg, opts, nil
