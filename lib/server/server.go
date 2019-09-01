@@ -6,33 +6,22 @@ import (
 	"log"
 	"net"
 	"strings"
-	"time"
 
 	"gitlab.com/adrian_blx/psa-dhcp/lib/dhcpmsg"
 	"gitlab.com/adrian_blx/psa-dhcp/lib/libif"
 	"gitlab.com/adrian_blx/psa-dhcp/lib/server/ipdb"
+	lo "gitlab.com/adrian_blx/psa-dhcp/lib/server/leaseopts"
 	pb "gitlab.com/adrian_blx/psa-dhcp/lib/server/proto"
 )
 
 type server struct {
-	ctx       context.Context         // Context used by this server.
-	l         *log.Logger             // Logger.
-	iface     *net.Interface          // Interface we are working on.
-	selfIP    net.IP                  // Our own IP (used as server identifier).
-	ipdb      *ipdb.IPDB              // IP database instance.
-	lopts     leaseOptions            // Default options for leases.
-	overrides map[string]leaseOptions // Static client configuration.
-}
-
-type leaseOptions struct {
-	ip            net.IP        // Static IP of a lease.
-	domain        string        // Domain to announce.
-	hostname      string        // Hostname to use.
-	netmask       net.IPMask    // Netmask of the network we announce.
-	router        net.IP        // Router to use.
-	dns           []net.IP      // List of DNS suggested to the client.
-	ntp           []net.IP      // List of NTP servers suggested to the client.
-	leaseDuration time.Duration // Duration of the announced lease.
+	ctx       context.Context            // Context used by this server.
+	l         *log.Logger                // Logger.
+	iface     *net.Interface             // Interface we are working on.
+	selfIP    net.IP                     // Our own IP (used as server identifier).
+	ipdb      *ipdb.IPDB                 // IP database instance.
+	lopts     lo.LeaseOptions            // Default options for leases.
+	overrides map[string]lo.LeaseOptions // Static client configuration.
 }
 
 func New(ctx context.Context, l *log.Logger, iface *net.Interface, conf *pb.ServerConfig) (*server, error) {
@@ -41,7 +30,7 @@ func New(ctx context.Context, l *log.Logger, iface *net.Interface, conf *pb.Serv
 		return nil, fmt.Errorf("failed to fetch my own IP from interface '%s': %v", iface.Name, err)
 	}
 
-	lopts, ipnet, err := parseConfig(conf)
+	lopts, ipnet, err := lo.ParseConfig(conf)
 	if err != nil {
 		return nil, fmt.Errorf("config parse error: %v", err)
 	}
@@ -74,17 +63,17 @@ func New(ctx context.Context, l *log.Logger, iface *net.Interface, conf *pb.Serv
 		l.Printf("# disabling dynamic IP assignment (static_only is 'true'), only static leases will be handed out.")
 	}
 
-	overrides := make(map[string]leaseOptions)
+	overrides := make(map[string]lo.LeaseOptions)
 	for k, v := range conf.GetClient() {
 		hwaddr, err := net.ParseMAC(k)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse hwaddr '%s': %v", k, err)
 		}
 		oopts := *lopts
-		setClientOverrides(&oopts, v)
-		if oopts.ip != nil {
-			if err := db.AddPermanentClient(oopts.ip, duidFromHwAddr(hwaddr)); err != nil {
-				return nil, fmt.Errorf("could not create permanent lease for %v -> %v: %v", hwaddr, oopts.ip, err)
+		lo.SetClientOverrides(&oopts, v)
+		if oopts.IP != nil {
+			if err := db.AddPermanentClient(oopts.IP, duidFromHwAddr(hwaddr)); err != nil {
+				return nil, fmt.Errorf("could not create permanent lease for %v -> %v: %v", hwaddr, oopts.IP, err)
 			}
 		}
 		if _, ok := overrides[hwaddr.String()]; ok {
@@ -103,20 +92,20 @@ func New(ctx context.Context, l *log.Logger, iface *net.Interface, conf *pb.Serv
 // dhcpOptions assembles a list of dhcp options from the server configuration.
 func (sx *server) dhcpOptions() []dhcpmsg.DHCPOpt {
 	opts := []dhcpmsg.DHCPOpt{
-		dhcpmsg.OptionIPAddressLeaseDuration(sx.lopts.leaseDuration),
-		dhcpmsg.OptionSubnetMask(sx.lopts.netmask),
+		dhcpmsg.OptionIPAddressLeaseDuration(sx.lopts.LeaseDuration),
+		dhcpmsg.OptionSubnetMask(sx.lopts.Netmask),
 	}
-	if sx.lopts.router != nil {
-		opts = append(opts, dhcpmsg.OptionRouter(sx.lopts.router))
+	if sx.lopts.Router != nil {
+		opts = append(opts, dhcpmsg.OptionRouter(sx.lopts.Router))
 	}
-	if len(sx.lopts.dns) > 0 {
-		opts = append(opts, dhcpmsg.OptionDNS(sx.lopts.dns...))
+	if len(sx.lopts.DNS) > 0 {
+		opts = append(opts, dhcpmsg.OptionDNS(sx.lopts.DNS...))
 	}
-	if len(sx.lopts.ntp) > 0 {
-		opts = append(opts, dhcpmsg.OptionNTP(sx.lopts.ntp...))
+	if len(sx.lopts.NTP) > 0 {
+		opts = append(opts, dhcpmsg.OptionNTP(sx.lopts.NTP...))
 	}
-	if sx.lopts.domain != "" {
-		opts = append(opts, dhcpmsg.OptionDomainName(sx.lopts.domain))
+	if sx.lopts.Domain != "" {
+		opts = append(opts, dhcpmsg.OptionDomainName(sx.lopts.Domain))
 	}
 	return opts
 }
