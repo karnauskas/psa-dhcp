@@ -1,5 +1,5 @@
 syntax = "proto3";
-package config;
+package serverconfig;
 
 message ServerConfig {
 	// IP&cidr we are responsible for.

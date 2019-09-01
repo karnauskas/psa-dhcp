@@ -48,6 +48,7 @@ func parseConfig(conf *pb.ServerConfig) (*leaseOptions, *net.IPNet, error) {
 	return lopts, ipnet, nil
 }
 
+// setClientOverrides updates the given leaseOptions pointer and overwrites values with the configuration found in the given clientConfig.
 func setClientOverrides(opts *leaseOptions, client *pb.ClientConfig) error {
 	if ip, err := ipv4(client.GetIp()); err != nil {
 		return err
