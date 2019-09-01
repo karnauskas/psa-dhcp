@@ -65,6 +65,12 @@ func New(ctx context.Context, l *log.Logger, iface *net.Interface, conf *pb.Serv
 		l.Printf("# dynamic range restricted to %s", dr)
 	}
 
+	// Disable dynamic ranges if desired
+	if conf.GetStaticOnly() {
+		db.DisableDynamic()
+		l.Printf("# disabling dynamic IP assignment (static_only is 'true'), only static leases will be handed out.")
+	}
+
 	// Give ourselfs a permanent fake lease.
 	if err := db.AddPermanentClient(selfIP, duidFromHwAddr(iface.HardwareAddr)); err != nil {
 		return nil, fmt.Errorf("failed to add own IP (%s) to configured net (%s): %v", selfIP, *ipnet, err)
