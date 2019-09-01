@@ -60,7 +60,8 @@ func ParseConfig(conf *pb.ServerConfig) (*LeaseOptions, *net.IPNet, error) {
 }
 
 // setClientOverrides updates the given leaseOptions pointer and overwrites values with the configuration found in the given clientConfig.
-func SetClientOverrides(opts *LeaseOptions, client *pb.ClientConfig) error {
+func SetClientOverrides(original *LeaseOptions, client *pb.ClientConfig) error {
+	opts := *original
 	if ip, err := ipv4(client.GetIp()); err != nil {
 		return err
 	} else if len(ip) == 1 {
@@ -75,17 +76,21 @@ func SetClientOverrides(opts *LeaseOptions, client *pb.ClientConfig) error {
 
 	if dns, err := ipv4(client.GetDns()...); err != nil {
 		return err
-	} else {
+	} else if len(dns) > 0 {
 		opts.DNS = dns
 	}
 
 	if ntp, err := ipv4(client.GetNtp()...); err != nil {
 		return err
-	} else {
+	} else if len(ntp) > 0 {
 		opts.NTP = ntp
 	}
 
-	opts.Hostname = client.GetHostname()
+	if hn := client.GetHostname(); hn != "" {
+		opts.Hostname = hn
+	}
+	// all done, update original reference.
+	*original = opts
 	return nil
 }
 
