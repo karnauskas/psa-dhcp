@@ -21,7 +21,7 @@ type server struct {
 	selfIP    net.IP                     // Our own IP (used as server identifier).
 	ipdb      *ipdb.IPDB                 // IP database instance.
 	lopts     lo.LeaseOptions            // Default options for leases.
-	overrides map[string]lo.LeaseOptions // Static client configuration.
+	overrides map[string]lo.LeaseOptions // Static client configuration, key is a private duid.
 }
 
 // New constructs a new dhcp server instance.
@@ -82,7 +82,7 @@ func New(ctx context.Context, l *log.Logger, iface *net.Interface, conf *pb.Serv
 			return nil, fmt.Errorf("duplicate permanent lease for %v", hwaddr)
 		}
 		l.Printf("# static mapping for %s configured.", hwaddr)
-		overrides[hwaddr.String()] = oopts
+		overrides[duidFromHwAddr(hwaddr).String()] = oopts
 	}
 
 	// Give ourselfs a permanent fake lease.
