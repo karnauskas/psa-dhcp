@@ -7,11 +7,6 @@ import (
 	"gitlab.com/adrian_blx/psa-dhcp/lib/dhcpmsg"
 )
 
-var (
-	ipInvalid = net.IPv4(0, 0, 0, 0)
-	ipBcast   = net.IPv4(255, 255, 255, 255)
-)
-
 type State int
 
 const (
@@ -27,8 +22,8 @@ func VerifyOffer(xid uint32) func(dhcpmsg.Message, dhcpmsg.DecodedOptions) State
 			return Failed
 		}
 		// We don't have a server identifier yet, but need one, so make sure we get one.
-		if opt.ServerIdentifier.Equal(ipInvalid) ||
-			opt.ServerIdentifier.Equal(ipBcast) {
+		if opt.ServerIdentifier.Equal(net.IPv4zero) ||
+			opt.ServerIdentifier.Equal(net.IPv4bcast) {
 			return Failed
 		}
 		return verifyCommon(xid, m, opt)
@@ -81,8 +76,8 @@ func verifyCommon(xid uint32, m dhcpmsg.Message, opt dhcpmsg.DecodedOptions) Sta
 		return Failed
 	}
 	if len(opt.Routers) == 0 ||
-		m.YourIP.Equal(ipInvalid) ||
-		m.YourIP.Equal(ipBcast) {
+		m.YourIP.Equal(net.IPv4zero) ||
+		m.YourIP.Equal(net.IPv4bcast) {
 		return Failed
 	}
 	if opt.IPAddressLeaseDuration < 1*time.Minute { // that would be silly.
