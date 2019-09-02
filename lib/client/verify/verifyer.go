@@ -70,9 +70,6 @@ func isStable(m, lm dhcpmsg.Message, opt, lopt dhcpmsg.DecodedOptions) bool {
 	if !m.YourIP.Equal(lm.YourIP) {
 		return false
 	}
-	if !m.NextIP.Equal(lm.NextIP) {
-		return false
-	}
 	if !opt.ServerIdentifier.Equal(lopt.ServerIdentifier) {
 		return false
 	}
@@ -85,8 +82,7 @@ func verifyCommon(xid uint32, m dhcpmsg.Message, opt dhcpmsg.DecodedOptions) Sta
 	}
 	if len(opt.Routers) == 0 ||
 		m.YourIP.Equal(ipInvalid) ||
-		m.YourIP.Equal(ipBcast) ||
-		m.NextIP.Equal(ipBcast) {
+		m.YourIP.Equal(ipBcast) {
 		return Failed
 	}
 	if opt.IPAddressLeaseDuration < 1*time.Minute { // that would be silly.
