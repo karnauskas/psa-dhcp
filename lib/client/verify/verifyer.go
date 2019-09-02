@@ -49,7 +49,7 @@ func VerifyRenewingAck(lm dhcpmsg.Message, lopt dhcpmsg.DecodedOptions, xid uint
 
 func verifyGenAck(lm dhcpmsg.Message, lopt dhcpmsg.DecodedOptions, xid uint32) func(dhcpmsg.Message, dhcpmsg.DecodedOptions) State {
 	return func(m dhcpmsg.Message, opt dhcpmsg.DecodedOptions) State {
-		if opt.MessageType == dhcpmsg.MsgTypeNack && opt.ServerIdentifier.Equal(lopt.ServerIdentifier) {
+		if opt.MessageType == dhcpmsg.MsgTypeNack {
 			return IsNack
 		}
 		if opt.MessageType != dhcpmsg.MsgTypeAck {

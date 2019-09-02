@@ -167,9 +167,9 @@ func TestVerifyGenAck(t *testing.T) {
 				ServerIdentifier: net.IPv4(192, 168, 100, 99),
 				MessageType:      dhcpmsg.MsgTypeNack,
 			},
-			wantSelecting: Failed,
-			wantRenewing:  Failed,
-			wantRebinding: Failed,
+			wantSelecting: IsNack,
+			wantRenewing:  IsNack,
+			wantRebinding: IsNack,
 		},
 	}
 
