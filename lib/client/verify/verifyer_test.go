@@ -91,6 +91,26 @@ func TestVerifyGenAck(t *testing.T) {
 			},
 			wantSelecting: Failed,
 			wantRenewing:  Failed,
+			wantRebinding: Passed,
+		},
+		{
+			name: "missing server identifier",
+			xid:  33,
+			lastmsg: dhcpmsg.Message{
+				YourIP: net.IPv4(192, 168, 1, 1),
+			},
+			lastopts: dhcpmsg.DecodedOptions{},
+			msg: dhcpmsg.Message{
+				Xid:    33,
+				YourIP: net.IPv4(192, 168, 1, 1),
+			},
+			opts: dhcpmsg.DecodedOptions{
+				Routers:                []net.IP{net.IPv4(192, 168, 0, 1)},
+				MessageType:            dhcpmsg.MsgTypeAck,
+				IPAddressLeaseDuration: 1 * time.Minute,
+			},
+			wantSelecting: Failed,
+			wantRenewing:  Failed,
 			wantRebinding: Failed,
 		},
 		{

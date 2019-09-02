@@ -21,33 +21,27 @@ func VerifyOffer(xid uint32) func(dhcpmsg.Message, dhcpmsg.DecodedOptions) State
 		if opt.MessageType != dhcpmsg.MsgTypeOffer {
 			return Failed
 		}
-
-		// We don't have a server identifier yet, but need one, so make sure we get one.
-		if opt.ServerIdentifier == nil ||
-			opt.ServerIdentifier.Equal(net.IPv4zero) ||
-			opt.ServerIdentifier.Equal(net.IPv4bcast) {
-			return Failed
-		}
 		return verifyCommon(xid, m, opt)
 	}
 }
 
 // VerifySelectingAck checks the ACK message sent to a selecting DHCPREQUEST.
 func VerifySelectingAck(lm dhcpmsg.Message, lopt dhcpmsg.DecodedOptions, xid uint32) func(dhcpmsg.Message, dhcpmsg.DecodedOptions) State {
-	return verifyGenAck(lm, lopt, xid)
-}
-
-// VerifyRebindingAck checks the ACK message of a DHCPREQUEST while rebinding.
-func VerifyRebindingAck(lm dhcpmsg.Message, lopt dhcpmsg.DecodedOptions, xid uint32) func(dhcpmsg.Message, dhcpmsg.DecodedOptions) State {
-	return verifyGenAck(lm, lopt, xid)
+	return verifyGenAck(lm, lopt, xid, true)
 }
 
 // VerifyRenewingAck checks the ACK message of a DHCPREQUEST while renewing.
 func VerifyRenewingAck(lm dhcpmsg.Message, lopt dhcpmsg.DecodedOptions, xid uint32) func(dhcpmsg.Message, dhcpmsg.DecodedOptions) State {
-	return verifyGenAck(lm, lopt, xid)
+	return verifyGenAck(lm, lopt, xid, true)
 }
 
-func verifyGenAck(lm dhcpmsg.Message, lopt dhcpmsg.DecodedOptions, xid uint32) func(dhcpmsg.Message, dhcpmsg.DecodedOptions) State {
+// VerifyRebindingAck checks the ACK message of a DHCPREQUEST while rebinding.
+func VerifyRebindingAck(lm dhcpmsg.Message, lopt dhcpmsg.DecodedOptions, xid uint32) func(dhcpmsg.Message, dhcpmsg.DecodedOptions) State {
+	// This is special: We do not care about the server identifier and will take whatever we get.
+	return verifyGenAck(lm, lopt, xid, false)
+}
+
+func verifyGenAck(lm dhcpmsg.Message, lopt dhcpmsg.DecodedOptions, xid uint32, vrfysi bool) func(dhcpmsg.Message, dhcpmsg.DecodedOptions) State {
 	return func(m dhcpmsg.Message, opt dhcpmsg.DecodedOptions) State {
 		if opt.MessageType == dhcpmsg.MsgTypeNack {
 			return IsNack
@@ -55,22 +49,14 @@ func verifyGenAck(lm dhcpmsg.Message, lopt dhcpmsg.DecodedOptions, xid uint32) f
 		if opt.MessageType != dhcpmsg.MsgTypeAck {
 			return Failed
 		}
-		if !isStable(m, lm, opt, lopt) {
+		if !m.YourIP.Equal(lm.YourIP) {
+			return Failed
+		}
+		if vrfysi && !opt.ServerIdentifier.Equal(lopt.ServerIdentifier) {
 			return Failed
 		}
 		return verifyCommon(xid, m, opt)
 	}
-}
-
-// isStable ensures that the server changed its mind too badly.
-func isStable(m, lm dhcpmsg.Message, opt, lopt dhcpmsg.DecodedOptions) bool {
-	if !m.YourIP.Equal(lm.YourIP) {
-		return false
-	}
-	if !opt.ServerIdentifier.Equal(lopt.ServerIdentifier) {
-		return false
-	}
-	return true
 }
 
 func verifyCommon(xid uint32, m dhcpmsg.Message, opt dhcpmsg.DecodedOptions) State {
@@ -81,6 +67,11 @@ func verifyCommon(xid uint32, m dhcpmsg.Message, opt dhcpmsg.DecodedOptions) Sta
 		m.YourIP == nil ||
 		m.YourIP.Equal(net.IPv4zero) ||
 		m.YourIP.Equal(net.IPv4bcast) {
+		return Failed
+	}
+	if opt.ServerIdentifier == nil ||
+		opt.ServerIdentifier.Equal(net.IPv4zero) ||
+		opt.ServerIdentifier.Equal(net.IPv4bcast) {
 		return Failed
 	}
 	if opt.IPAddressLeaseDuration < 1*time.Minute { // that would be silly.
