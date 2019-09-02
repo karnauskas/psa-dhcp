@@ -21,8 +21,10 @@ func VerifyOffer(xid uint32) func(dhcpmsg.Message, dhcpmsg.DecodedOptions) State
 		if opt.MessageType != dhcpmsg.MsgTypeOffer {
 			return Failed
 		}
+
 		// We don't have a server identifier yet, but need one, so make sure we get one.
-		if opt.ServerIdentifier.Equal(net.IPv4zero) ||
+		if opt.ServerIdentifier == nil ||
+			opt.ServerIdentifier.Equal(net.IPv4zero) ||
 			opt.ServerIdentifier.Equal(net.IPv4bcast) {
 			return Failed
 		}
@@ -76,6 +78,7 @@ func verifyCommon(xid uint32, m dhcpmsg.Message, opt dhcpmsg.DecodedOptions) Sta
 		return Failed
 	}
 	if len(opt.Routers) == 0 ||
+		m.YourIP == nil ||
 		m.YourIP.Equal(net.IPv4zero) ||
 		m.YourIP.Equal(net.IPv4bcast) {
 		return Failed
