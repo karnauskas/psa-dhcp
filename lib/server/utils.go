@@ -32,6 +32,7 @@ func (sx *server) sendUnicast(hwaddr net.HardwareAddr, payload []byte) error {
 		return err
 	}
 	ss.Write(payload)
+	ss.Close()
 	return nil
 }
 
