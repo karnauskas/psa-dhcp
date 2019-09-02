@@ -40,7 +40,7 @@ func (dx *dclient) runStateArpCheck(nextState int) {
 	dx.l.Printf("Running ARPING for %s\n", dx.lastMsg.YourIP)
 	mac, err := arpping.Ping(dx.ctx, dx.iface, net.IPv4(0, 0, 0, 0), dx.lastMsg.YourIP)
 	if err == nil && !bytes.Equal(mac, dx.iface.HardwareAddr) {
-		dx.panicReset("IP %v is already in use by %v", dx.lastMsg.YourIP, mac)
+		dx.panicReset("IP %v is already in use by %s (we are %s)", dx.lastMsg.YourIP, mac, dx.iface.HardwareAddr)
 	} else {
 		dx.state = nextState
 	}

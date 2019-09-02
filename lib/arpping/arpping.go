@@ -11,7 +11,7 @@ import (
 
 // Ping sends an arp ping to the given destination. The call returns after a valid reply
 // was received, after 200 ms passed or after the context expired - whichever happens first.
-func Ping(ctx context.Context, iface *net.Interface, src, dst net.IP) ([]byte, error) {
+func Ping(ctx context.Context, iface *net.Interface, src, dst net.IP) (net.HardwareAddr, error) {
 	actx, acancel := context.WithTimeout(ctx, 200*time.Millisecond)
 	defer acancel()
 
@@ -19,7 +19,7 @@ func Ping(ctx context.Context, iface *net.Interface, src, dst net.IP) ([]byte, e
 	return catchARPReply(actx, iface, dst)
 }
 
-func catchARPReply(octx context.Context, iface *net.Interface, target net.IP) ([]byte, error) {
+func catchARPReply(octx context.Context, iface *net.Interface, target net.IP) (net.HardwareAddr, error) {
 	rs, err := rsocks.GetARPRecvSock(iface)
 	if err != nil {
 		return nil, err
