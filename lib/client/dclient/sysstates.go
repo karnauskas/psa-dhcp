@@ -12,6 +12,8 @@ import (
 
 // runStateInitIface removes any IPv4 configuration from the interface and brings it up.
 func (dx *dclient) runStatePurgeInterface(nextState int) {
+	dx.runPreCallback(nil)
+
 	dx.l.Printf("unconfiguring interface\n")
 	if err := libif.Unconfigure(dx.iface); err != nil {
 		dx.l.Printf("Unconfigure returned error %v\n", err)
@@ -20,18 +22,20 @@ func (dx *dclient) runStatePurgeInterface(nextState int) {
 		dx.l.Printf("Bringing up interface returned error %v\n", err)
 	}
 	dx.state = nextState
-	dx.runCallbacks(nil)
+	dx.runPostCallback(nil)
 }
 
 // runStateIfconfig applies the current state of the client to the network interface.
 func (dx *dclient) runStateIfconfig(nextState int) {
 	nc := dx.buildNetconfig()
+	dx.runPreCallback(&nc)
+
 	dx.l.Printf("Configuring interface to use IP %s/%s via %s\n", nc.IP, nc.Netmask, nc.Router)
 	if err := libif.SetIface(nc); err != nil {
 		dx.panicReset("Unexpected error while configuring interface, falling back to INIT in 30 sec! (error was: %v)\n", err)
 	} else {
 		dx.state = nextState
-		dx.runCallbacks(&nc)
+		dx.runPostCallback(&nc)
 	}
 }
 

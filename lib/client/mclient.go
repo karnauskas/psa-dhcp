@@ -34,7 +34,7 @@ func (mx *mclient) Run() error {
 	// We use a pointer as the local value will get updated.
 	go mx.monitor(&dcancel)
 
-	dx := dclient.New(dctx, mx.iface, mx.l, cb.Cbhandler(mx.script, mx.iface, mx.l))
+	dx := dclient.New(dctx, mx.iface, mx.l, mx.filterNetconfig, cb.Cbhandler(mx.script, mx.iface, mx.l))
 	for {
 		dx.Run()
 		if err := mx.ctx.Err(); err != nil {

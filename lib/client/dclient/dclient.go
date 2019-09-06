@@ -32,25 +32,27 @@ type boundDeadlines struct {
 
 // dclient is the dhcp client state machine.
 type dclient struct {
-	ctx            context.Context                          // The context to use.
-	l              *log.Logger                              // Logging interface
-	iface          *net.Interface                           // Network hardware interface
-	state          int                                      // The current state we are in
-	lastMsg        dhcpmsg.Message                          // Last accepted DHCP reply
-	lastOpts       dhcpmsg.DecodedOptions                   // Options of last accepted reply
-	boundDeadlines boundDeadlines                           // Deadline information, updated by BOUND state
-	limiter        *rate.Limiter                            // Rate limiter
-	callbacks      []func(context.Context, *libif.Ifconfig) // List of possible callbacks.
+	ctx            context.Context                        // The context to use.
+	l              *log.Logger                            // Logging interface
+	iface          *net.Interface                         // Network hardware interface
+	state          int                                    // The current state we are in
+	lastMsg        dhcpmsg.Message                        // Last accepted DHCP reply
+	lastOpts       dhcpmsg.DecodedOptions                 // Options of last accepted reply
+	boundDeadlines boundDeadlines                         // Deadline information, updated by BOUND state
+	limiter        *rate.Limiter                          // Rate limiter
+	preCallback    func(context.Context, *libif.Ifconfig) // Pre-configuration callback.
+	postCallback   func(context.Context, *libif.Ifconfig) // Post-configuration callback.
 }
 
-func New(ctx context.Context, iface *net.Interface, l *log.Logger, cb []func(context.Context, *libif.Ifconfig)) *dclient {
+func New(ctx context.Context, iface *net.Interface, l *log.Logger, prCb, poCb func(context.Context, *libif.Ifconfig)) *dclient {
 	return &dclient{
-		ctx:       ctx,
-		iface:     iface,
-		l:         l,
-		state:     statePurgeInterface,
-		callbacks: cb,
-		limiter:   rate.NewLimiter(1, 10),
+		ctx:          ctx,
+		iface:        iface,
+		l:            l,
+		state:        statePurgeInterface,
+		preCallback:  prCb,
+		postCallback: poCb,
+		limiter:      rate.NewLimiter(1, 10),
 	}
 }
 
@@ -157,8 +159,10 @@ func (dx *dclient) advanceState(deadline time.Time, vrfy vrfyFunc, sender sender
 	return msg, opts, nil
 }
 
-func (dx *dclient) runCallbacks(c *libif.Ifconfig) {
-	for _, cb := range dx.callbacks {
-		cb(dx.ctx, c)
-	}
+func (dx *dclient) runPreCallback(c *libif.Ifconfig) {
+	dx.preCallback(dx.ctx, c)
+}
+
+func (dx *dclient) runPostCallback(c *libif.Ifconfig) {
+	dx.postCallback(dx.ctx, c)
 }
