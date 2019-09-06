@@ -128,20 +128,22 @@ func SetIface(c Ifconfig) error {
 		return err
 	}
 
-	if oldRoute != nil && !oldRoute.Gw.Equal(c.Router) {
-		// We have an *existing* route which doesn't match: delete it.
-		if err := netlink.RouteDel(oldRoute); err != nil {
-			return err
+	if c.Router != nil {
+		if oldRoute != nil && !oldRoute.Gw.Equal(c.Router) {
+			// We have an *existing* route which doesn't match: delete it.
+			if err := netlink.RouteDel(oldRoute); err != nil {
+				return err
+			}
 		}
-	}
-	if oldRoute == nil || !oldRoute.Gw.Equal(c.Router) {
-		// Non-existing or old route is wrong: add new route.
-		newRoute := &netlink.Route{
-			LinkIndex: c.Interface.Index,
-			Gw:        c.Router,
-		}
-		if err := netlink.RouteAdd(newRoute); err != nil {
-			return err
+		if oldRoute == nil || !oldRoute.Gw.Equal(c.Router) {
+			// Non-existing or old route is wrong: add new route.
+			newRoute := &netlink.Route{
+				LinkIndex: c.Interface.Index,
+				Gw:        c.Router,
+			}
+			if err := netlink.RouteAdd(newRoute); err != nil {
+				return err
+			}
 		}
 	}
 

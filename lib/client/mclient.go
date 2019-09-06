@@ -12,15 +12,16 @@ import (
 
 // mclient is the 'main' client and is what we return on New.
 type mclient struct {
-	ctx    context.Context
-	l      *log.Logger
-	iface  *net.Interface
-	script string
+	ctx            context.Context
+	l              *log.Logger
+	iface          *net.Interface
+	script         string
+	configureRoute bool
 }
 
 // New returns a new mclient to the caller. Use Run() to launch it.
-func New(ctx context.Context, l *log.Logger, iface *net.Interface, script string) *mclient {
-	return &mclient{ctx: ctx, l: l, iface: iface, script: script}
+func New(ctx context.Context, l *log.Logger, iface *net.Interface, script string, croute bool) *mclient {
+	return &mclient{ctx: ctx, l: l, iface: iface, script: script, configureRoute: croute}
 }
 
 // Run runs the main loop.

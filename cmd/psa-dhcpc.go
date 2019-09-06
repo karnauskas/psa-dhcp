@@ -17,6 +17,7 @@ var (
 	ifname  = flag.String("ifname", "", "Interface to use")
 	logTime = flag.Bool("log_time", true, "Prefix log messages with timestamp")
 	script  = flag.String("script", "", "Script to execute on significant changes")
+	route   = flag.Bool("default_route", true, "Configure (default) route")
 )
 
 func main() {
@@ -44,7 +45,7 @@ func main() {
 
 	l.SetPrefix(fmt.Sprintf("psa-dhcpc[%s] ", iface.Name))
 
-	c := client.New(ctx, l, iface, *script)
+	c := client.New(ctx, l, iface, *script, *route)
 	err = c.Run()
 	if err != nil {
 		l.Fatalf("error: %v\n", err)
