@@ -38,16 +38,17 @@ func (sx *server) sendUnicast(hwaddr net.HardwareAddr, payload []byte) error {
 
 // getDuid returns the duid to use for this client, based on the static assignements config.
 func (sx *server) getDuid(hwaddr net.HardwareAddr, cid []byte) d.Duid {
-	// This duid would only exist in ipdb for clients with a static lease
 	sduid := duidFromHwAddr(hwaddr)
 	if _, err := sx.ipdb.LookupClientByDuid(sduid); err == nil {
+		// Found client with our own internal duid representation, most likely
+		// due to a static assignment, so we use the internal version.
 		return sduid
 	}
 	if len(cid) < 4 {
-		sx.l.Printf("Client %s did not report a client identifier?! Using self generated duid %s", hwaddr, sduid)
+		// Client sent us nonsense. Our own internal duid is better than this.
 		return sduid
 	}
-	// -> no static lease? -> use client given identifier as duid.
+	// No client override and sane duid -> use it.
 	return d.Duid(cid)
 }
 
