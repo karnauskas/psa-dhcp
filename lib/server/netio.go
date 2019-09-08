@@ -13,11 +13,6 @@ import (
 	yl "gitlab.com/adrian_blx/psa-dhcp/lib/server/ylog"
 )
 
-const (
-	// Sleep some random time during DISCOVER messages to allow 'slower' DHCP servers do also make progress.
-	discoverDelay = int64(time.Duration(25 * time.Millisecond))
-)
-
 func (sx *server) handleMsg(src, dst net.IP, msg dhcpmsg.Message) {
 	opts := dhcpmsg.DecodeOptions(msg.Options)
 	duid := sx.getDuid(msg.ClientMAC, opts.ClientIdentifier)
@@ -35,7 +30,11 @@ func (sx *server) handleMsg(src, dst net.IP, msg dhcpmsg.Message) {
 
 	switch opts.MessageType {
 	case dhcpmsg.MsgTypeDiscover:
-		time.Sleep(time.Duration(rand.Int63n(discoverDelay)))
+		// 50% chance of delaying the replay to give 'slower' DHCP servers a chance.
+		if delay := time.Duration(rand.Int63n(2)*50) * time.Millisecond; delay > 0 {
+			yl.Printf("DISCOVER: Waiting for %v for other servers to pick up.", delay)
+			time.Sleep(delay)
+		}
 		sx.handleDiscover(yl, src, dst, duid, msg, opts)
 	case dhcpmsg.MsgTypeRequest:
 		sx.handleRequest(yl, src, dst, duid, msg, opts)
