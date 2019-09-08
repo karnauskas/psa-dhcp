@@ -302,6 +302,11 @@ func TestInManagedRange(t *testing.T) {
 			want: true,
 		},
 		{
+			name: "okay dynamic",
+			ip:   net.IPv4(192, 168, 1, 2),
+			want: true,
+		},
+		{
 			name: "unmanaged net root",
 			ip:   net.IPv4(192, 168, 0, 0),
 			want: false,
@@ -321,6 +326,11 @@ func TestInManagedRange(t *testing.T) {
 	ipdb, err := New(net.IPv4(192, 168, 0, 0), net.IPMask{255, 255, 224, 0})
 	if err != nil {
 		t.Fatalf("InManagedRange: failed to create ipdb: %v", err)
+	}
+
+	// This should not have any effect.
+	if err := ipdb.SetDynamicRange(net.IPv4(192, 168, 1, 1), net.IPv4(192, 168, 1, 3)); err != nil {
+		t.Fatalf("SetDynamicRange failed: %v", err)
 	}
 
 	for _, test := range input {

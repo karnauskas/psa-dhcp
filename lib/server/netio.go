@@ -107,6 +107,12 @@ func (sx *server) handleRequest(yl *yl.Ylog, src, dst net.IP, duid d.Duid, msg d
 		panic(fmt.Errorf("desiredIP is nil"))
 	}
 
+	// We must not reply if we don't manage this network.
+	if !sx.ipdb.InManagedRange(desiredIP) {
+		yl.Printf("REQUEST: desired IP '%s' is not in our managed network range, dropping request", desiredIP)
+		return
+	}
+
 	lease, err := sx.ipdb.LookupClientByDuid(duid)
 	if err != nil {
 		yl.Printf("REQUEST: Failed to find lease for DUID '%s', sending NAK: %v", duid, err)
