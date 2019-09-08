@@ -62,7 +62,7 @@ func RequestRenewing(iface *net.Interface, requestedIP, serverIdentifier net.IP)
 // RequestRebinding returns a rebinding request.
 func RequestRebinding(iface *net.Interface, requestedIP net.IP) (func() ([]byte, net.IP, net.IP), uint32) {
 	// This is a broadcast message of a configured client.
-	// This message is similar to the RequestRenewing message bug sent as
+	// This message is similar to the RequestRenewing message but sent as
 	// a broadcast message to all (DHCP)Servers on the network.
 	t := create(iface)
 	return func() ([]byte, net.IP, net.IP) {

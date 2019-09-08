@@ -34,6 +34,7 @@ func (dx *dclient) runStateSelecting(nextState, failState int) {
 	}
 }
 
+// runStateBound configures T1 and T2, sleeping until T1 (or the context) expires.
 func (dx *dclient) runStateBound(nextState int) {
 	now := time.Now()
 	dx.boundDeadlines = boundDeadlines{
@@ -53,6 +54,7 @@ func (dx *dclient) runStateBound(nextState int) {
 	dx.state = nextState
 }
 
+// runStateRenewing sends unicast renewing messages to the selected server until T2 expires.
 func (dx *dclient) runStateRenewing(nextState, failState int) {
 	dx.l.Printf("Renewing lease, will try until %s", dx.boundDeadlines.t2.Format(time.RFC3339))
 	rq, xid := msgtmpl.RequestRenewing(dx.iface, dx.lastMsg.YourIP, dx.lastOpts.ServerIdentifier)
@@ -68,6 +70,7 @@ func (dx *dclient) runStateRenewing(nextState, failState int) {
 	}
 }
 
+// runStateRebinding sends broadcast rebinding messages until our lease expires.
 func (dx *dclient) runStateRebinding(nextState, failState int) {
 	dx.l.Printf("Rebinding lease, will try until %s", dx.boundDeadlines.tx.Format(time.RFC3339))
 	rq, xid := msgtmpl.RequestRebinding(dx.iface, dx.lastMsg.YourIP)

@@ -22,6 +22,7 @@ var (
 	reSafeChars = regexp.MustCompile(`[^a-zA-Z0-9\.-]`)
 )
 
+// Cbhandler returns a function which can be called to execute the specified script.
 func Cbhandler(script string, iface *net.Interface, l *log.Logger) func(context.Context, *libif.Ifconfig) {
 	return func(ctx context.Context, c *libif.Ifconfig) {
 		if script == "" {
@@ -47,6 +48,7 @@ func Cbhandler(script string, iface *net.Interface, l *log.Logger) func(context.
 	}
 }
 
+// dumpScriptConf returns a (shell safe) version of the specified interface configuration.
 func dumpScriptConf(c *libif.Ifconfig) []string {
 	dns := make([]string, len(c.DNS))
 	for i, d := range c.DNS {

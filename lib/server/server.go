@@ -45,7 +45,7 @@ func New(ctx context.Context, l *log.Logger, iface *net.Interface, conf *pb.Serv
 	if dr := conf.GetDynamicRange(); dr != "" {
 		sr := strings.Split(dr, "-")
 		if len(sr) != 2 {
-			return nil, fmt.Errorf("dynamic_range value '%s' invalid. Expected 'start-end'", dr)
+			return nil, fmt.Errorf("dynamic_range format '%s' invalid. Expected 'start-end'", dr)
 		}
 		ipa := net.ParseIP(sr[0])
 		ipb := net.ParseIP(sr[1])
@@ -79,9 +79,9 @@ func New(ctx context.Context, l *log.Logger, iface *net.Interface, conf *pb.Serv
 			}
 		}
 		if _, ok := overrides[hwaddr.String()]; ok {
-			return nil, fmt.Errorf("duplicate permanent lease for %v", hwaddr)
+			return nil, fmt.Errorf("duplicate client override for %v", hwaddr)
 		}
-		l.Printf("# static mapping for %s configured.", hwaddr)
+		l.Printf("# client override for %s configured.", hwaddr)
 		overrides[duidFromHwAddr(hwaddr).String()] = oopts
 	}
 

@@ -9,7 +9,8 @@ import (
 )
 
 func (sx *server) Run() error {
-	sx.l.Printf("# Starting up psa-dhcpd. Config: %s", sx)
+	sx.l.Printf("# psa-dhcpd is ready!")
+	sx.l.Printf("# Configuration: %s", sx)
 
 	rsock, err := rsocks.GetIPRecvSock(sx.iface)
 	if err != nil {
