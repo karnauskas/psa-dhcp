@@ -3,6 +3,7 @@ package server
 import (
 	"bytes"
 	"fmt"
+	"math/rand"
 	"net"
 	"time"
 
@@ -10,6 +11,11 @@ import (
 	d "gitlab.com/adrian_blx/psa-dhcp/lib/server/ipdb/duid"
 	"gitlab.com/adrian_blx/psa-dhcp/lib/server/replies"
 	yl "gitlab.com/adrian_blx/psa-dhcp/lib/server/ylog"
+)
+
+const (
+	// Sleep some random time during DISCOVER messages to allow 'slower' DHCP servers do also make progress.
+	discoverDelay = int64(time.Duration(25 * time.Millisecond))
 )
 
 func (sx *server) handleMsg(src, dst net.IP, msg dhcpmsg.Message) {
@@ -29,6 +35,7 @@ func (sx *server) handleMsg(src, dst net.IP, msg dhcpmsg.Message) {
 
 	switch opts.MessageType {
 	case dhcpmsg.MsgTypeDiscover:
+		time.Sleep(time.Duration(rand.Int63n(discoverDelay)))
 		sx.handleDiscover(yl, src, dst, duid, msg, opts)
 	case dhcpmsg.MsgTypeRequest:
 		sx.handleRequest(yl, src, dst, duid, msg, opts)
