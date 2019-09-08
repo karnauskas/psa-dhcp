@@ -156,6 +156,14 @@ func (ix *IPDB) FindIP(ctx context.Context, isFree func(context.Context, net.IP)
 	return nil, fmt.Errorf("no free ip found")
 }
 
+// InManagedRange returns 'true' if given ip is in the network range we manage.
+func (ix *IPDB) InManagedRange(ip net.IP) bool {
+	if _, err := ix.toUip(ip); err == nil {
+		return true
+	}
+	return false
+}
+
 func (ix *IPDB) toUip(ip net.IP) (uip.Uip, error) {
 	var n uip.Uip
 	if v4 := ip.To4(); v4 == nil {

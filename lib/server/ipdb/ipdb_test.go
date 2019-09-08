@@ -279,3 +279,54 @@ func TestFromTo(t *testing.T) {
 		}
 	}
 }
+
+func TestInManagedRange(t *testing.T) {
+	input := []struct {
+		name string
+		ip   net.IP
+		want bool
+	}{
+		{
+			name: "okay base",
+			ip:   net.IPv4(192, 168, 0, 1),
+			want: true,
+		},
+		{
+			name: "okay end",
+			ip:   net.IPv4(192, 168, 31, 254),
+			want: true,
+		},
+		{
+			name: "okay middle",
+			ip:   net.IPv4(192, 168, 11, 54),
+			want: true,
+		},
+		{
+			name: "unmanaged net root",
+			ip:   net.IPv4(192, 168, 0, 0),
+			want: false,
+		},
+		{
+			name: "unmanaged bcast",
+			ip:   net.IPv4(192, 168, 31, 255),
+			want: false,
+		},
+		{
+			name: "out of range",
+			ip:   net.IPv4(192, 168, 62, 25),
+			want: false,
+		},
+	}
+
+	ipdb, err := New(net.IPv4(192, 168, 0, 0), net.IPMask{255, 255, 224, 0})
+	if err != nil {
+		t.Fatalf("InManagedRange: failed to create ipdb: %v", err)
+	}
+
+	for _, test := range input {
+		got := ipdb.InManagedRange(test.ip)
+		if got != test.want {
+			t.Errorf("InManagedRange(%s) = %v, want %v", test.name, got, test.want)
+		}
+	}
+}
