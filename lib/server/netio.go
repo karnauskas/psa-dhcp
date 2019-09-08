@@ -89,7 +89,7 @@ func (sx *server) handleRequest(yl *yl.Ylog, src, dst net.IP, duid d.Duid, msg d
 		// SELECTING
 		yl.Printf("REQUEST: SELECTING state for DUID '%s'", duid)
 		desiredIP = opts.RequestedIP
-	} else if !dst.Equal(net.IPv4bcast) && opts.ServerIdentifier == nil && opts.RequestedIP == nil {
+	} else if dst.Equal(sx.selfIP) && opts.ServerIdentifier == nil && opts.RequestedIP == nil {
 		// RENEWING
 		yl.Printf("REQUEST: RENEWAL from IP '%s'", src)
 		desiredIP = src
@@ -98,7 +98,7 @@ func (sx *server) handleRequest(yl *yl.Ylog, src, dst net.IP, duid d.Duid, msg d
 		yl.Printf("REQUEST: REBINDING from IP '%s'", src)
 		desiredIP = src
 	} else {
-		yl.Printf("REQUEST: Bogous server identifier '%s', dropping", opts.ServerIdentifier)
+		yl.Printf("REQUEST: Bogous request for destination '%s' with server identifier '%s' dropped", dst, opts.ServerIdentifier)
 		return
 	}
 
