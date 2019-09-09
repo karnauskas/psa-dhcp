@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	cr "crypto/rand"
+	"encoding/binary"
 	"flag"
 	"fmt"
 	"log"
@@ -20,10 +22,17 @@ var (
 	route   = flag.Bool("default_route", true, "Configure (default) route")
 )
 
+func init() {
+	seed := time.Now().UnixNano()
+	buf := make([]byte, 8)
+	if _, err := cr.Read(buf); err == nil {
+		seed += int64(binary.LittleEndian.Uint64(buf))
+	}
+	rand.Seed(seed)
+}
+
 func main() {
 	flag.Parse()
-
-	rand.Seed(time.Now().Unix())
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
