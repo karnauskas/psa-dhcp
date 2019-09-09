@@ -25,9 +25,6 @@ func (rx *tmpl) request(msgtype uint8, sourceIP, destinationIP, requestedIP, ser
 			dhcpmsg.OptDNS, dhcpmsg.OptDomainName, dhcpmsg.OptInterfaceMTU,
 			dhcpmsg.OptRenewalDuration, dhcpmsg.OptRebindDuration),
 	}
-	if rx.hostname != "" {
-		msgopts = append(msgopts, dhcpmsg.OptionHostname(rx.hostname))
-	}
 	if requestedIP != nil {
 		msgopts = append(msgopts, dhcpmsg.OptionRequestedIP(requestedIP))
 	}

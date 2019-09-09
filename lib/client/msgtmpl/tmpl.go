@@ -3,15 +3,13 @@ package msgtmpl
 import (
 	"math/rand"
 	"net"
-	"os"
 
 	"gitlab.com/adrian_blx/psa-dhcp/lib/dhcpmsg"
 )
 
 type tmpl struct {
-	hostname string
-	xid      uint32
-	hwaddr   net.HardwareAddr
+	xid    uint32
+	hwaddr net.HardwareAddr
 }
 
 // creates a new message template for the given interface.
@@ -19,10 +17,6 @@ func create(iface *net.Interface) tmpl {
 	t := tmpl{
 		xid: rand.Uint32(),
 	}
-	if hn, err := os.Hostname(); err == nil {
-		t.hostname = hn
-	}
-
 	t.hwaddr = make(net.HardwareAddr, len(iface.HardwareAddr))
 	copy(t.hwaddr, iface.HardwareAddr)
 	return t
