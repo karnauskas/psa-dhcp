@@ -23,3 +23,6 @@ rpi:
 
 lib/server/proto/%.pb.go: lib/server/proto/%.proto
 	protoc --go_out=. $<
+
+lib/oui/oui.go:
+	go run lib/oui/gen-liboui.go > lib/oui/oui.go

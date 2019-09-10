@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"gitlab.com/adrian_blx/psa-dhcp/lib/dhcpmsg"
+	"gitlab.com/adrian_blx/psa-dhcp/lib/oui"
 )
 
 type Ylog struct {
@@ -13,7 +14,11 @@ type Ylog struct {
 }
 
 func New(l *log.Logger, msg dhcpmsg.Message, opts dhcpmsg.DecodedOptions) *Ylog {
-	s := fmt.Sprintf("[%s] ", msg.ClientMAC)
+	vid := "UNKNOWN VENDOR"
+	if res, ok := oui.Lookup(msg.ClientMAC); ok {
+		vid = res
+	}
+	s := fmt.Sprintf("[%s] <%-18s> ", msg.ClientMAC, vid)
 	return &Ylog{l: l, s: s}
 }
 
