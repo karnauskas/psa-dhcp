@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"gitlab.com/adrian_blx/psa-dhcp/lib/client"
+	"gitlab.com/adrian_blx/psa-dhcp/lib/resolvconf"
 )
 
 var (
@@ -20,6 +21,7 @@ var (
 	logTime = flag.Bool("log_time", true, "Prefix log messages with timestamp")
 	script  = flag.String("script", "", "Script to execute on significant changes")
 	route   = flag.Bool("default_route", true, "Configure (default) route")
+	syshook = flag.Bool("syshook", false, "For use in -script: update /etc/resolv.conf")
 )
 
 func init() {
@@ -42,6 +44,13 @@ func main() {
 		lflags |= log.LstdFlags
 	}
 	l := log.New(os.Stdout, "psa-dhcpc: ", lflags)
+
+	if *syshook {
+		if err := resolvconf.Run(ctx, l); err != nil {
+			l.Fatalf("error running resolvconf hook: %v", err)
+		}
+		os.Exit(0)
+	}
 
 	if *ifname == "" {
 		l.Fatalf("-ifname must be set")

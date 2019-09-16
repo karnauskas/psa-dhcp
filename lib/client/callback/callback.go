@@ -20,7 +20,7 @@ const (
 )
 
 var (
-	reSafeChars = regexp.MustCompile(`[^a-zA-Z0-9\.-]`)
+	reBadChars = regexp.MustCompile(`[^a-zA-Z0-9\.-]`)
 )
 
 // Cbhandler returns a function which can be called to execute the specified script.
@@ -73,7 +73,7 @@ func dumpScriptConf(c *libif.Ifconfig) []string {
 }
 
 func envEntry(key, val string) string {
-	val = reSafeChars.ReplaceAllString(val, "_")
+	val = reBadChars.ReplaceAllString(val, "_")
 	return fmt.Sprintf("PSA_DHCPC_%s=%s", key, val)
 }
 
