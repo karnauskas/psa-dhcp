@@ -2,6 +2,7 @@ package callback
 
 import (
 	"context"
+	"encoding/csv"
 	"fmt"
 	"log"
 	"net"
@@ -25,14 +26,19 @@ var (
 // Cbhandler returns a function which can be called to execute the specified script.
 func Cbhandler(script string, iface *net.Interface, l *log.Logger) func(context.Context, *libif.Ifconfig) {
 	return func(ctx context.Context, c *libif.Ifconfig) {
-		if script == "" {
+		cargs, err := parseScriptArgs(script)
+		if err != nil {
+			l.Printf("failed to parse '%s': %v", script, err)
+			return
+		}
+		if len(cargs) == 0 {
 			return
 		}
 
 		cctx, ccancel := context.WithTimeout(ctx, scriptTimeout)
 		defer ccancel()
 
-		cmd := exec.CommandContext(cctx, script)
+		cmd := exec.CommandContext(cctx, cargs[0], cargs[1:]...)
 		cmd.Env = append(os.Environ(),
 			envEntry("INTERFACE", iface.Name),
 		)
@@ -69,4 +75,11 @@ func dumpScriptConf(c *libif.Ifconfig) []string {
 func envEntry(key, val string) string {
 	val = reSafeChars.ReplaceAllString(val, "_")
 	return fmt.Sprintf("PSA_DHCPC_%s=%s", key, val)
+}
+
+func parseScriptArgs(cmdline string) ([]string, error) {
+	r := csv.NewReader(strings.NewReader(cmdline))
+	r.Comma = ' '
+	r.TrimLeadingSpace = true
+	return r.Read()
 }
