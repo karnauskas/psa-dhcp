@@ -147,7 +147,7 @@ func (sx *server) sendNACK(xid uint32, mac net.HardwareAddr) {
 func (sx *server) sendMsg(msg dhcpmsg.Message, ip net.IP, f func(uint32, uint16, net.IP, net.IP, net.HardwareAddr, []dhcpmsg.DHCPOpt) []byte) {
 	// FIXME: Overrides
 	bcast := (msg.Flags & dhcpmsg.FlagBroadcast) != 0
-	pkt := f(msg.Xid, msg.Flags, sx.selfIP, ip, msg.ClientMAC, sx.dhcpOptions())
+	pkt := f(msg.Xid, msg.Flags, sx.selfIP, ip, msg.ClientMAC, sx.dhcpOptions(msg.ClientMAC))
 
 	if bcast {
 		sx.l.Printf(">> SENDING AS BROADCASAT")

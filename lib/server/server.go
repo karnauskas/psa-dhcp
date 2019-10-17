@@ -93,21 +93,34 @@ func New(ctx context.Context, l *log.Logger, iface *net.Interface, conf *pb.Serv
 }
 
 // dhcpOptions assembles a list of dhcp options from the server configuration.
-func (sx *server) dhcpOptions() []dhcpmsg.DHCPOpt {
+func (sx *server) dhcpOptions(clientMAC net.HardwareAddr) []dhcpmsg.DHCPOpt {
 	opts := []dhcpmsg.DHCPOpt{
 		dhcpmsg.OptionIPAddressLeaseDuration(sx.lopts.LeaseDuration),
 		dhcpmsg.OptionSubnetMask(sx.lopts.Netmask),
 	}
-	if sx.lopts.Router != nil {
+	ov, ok := sx.overrides[duidFromHwAddr(clientMAC).String()]
+
+	if ok && ov.Router != nil {
+		opts = append(opts, dhcpmsg.OptionRouter(ov.Router))
+	} else if sx.lopts.Router != nil {
 		opts = append(opts, dhcpmsg.OptionRouter(sx.lopts.Router))
 	}
-	if len(sx.lopts.DNS) > 0 {
+
+	if ok && len(ov.DNS) > 0 {
+		opts = append(opts, dhcpmsg.OptionDNS(ov.DNS...))
+	} else if len(sx.lopts.DNS) > 0 {
 		opts = append(opts, dhcpmsg.OptionDNS(sx.lopts.DNS...))
 	}
-	if len(sx.lopts.NTP) > 0 {
+
+	if ok && len(ov.NTP) > 0 {
+		opts = append(opts, dhcpmsg.OptionNTP(ov.NTP...))
+	} else if len(sx.lopts.NTP) > 0 {
 		opts = append(opts, dhcpmsg.OptionNTP(sx.lopts.NTP...))
 	}
-	if sx.lopts.Domain != "" {
+
+	if ok && ov.Domain != "" {
+		opts = append(opts, dhcpmsg.OptionDomainName(ov.Domain))
+	} else if sx.lopts.Domain != "" {
 		opts = append(opts, dhcpmsg.OptionDomainName(sx.lopts.Domain))
 	}
 	return opts
