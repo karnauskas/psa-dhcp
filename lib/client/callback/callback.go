@@ -78,8 +78,14 @@ func envEntry(key, val string) string {
 }
 
 func parseScriptArgs(cmdline string) ([]string, error) {
-	r := csv.NewReader(strings.NewReader(cmdline))
-	r.Comma = ' '
-	r.TrimLeadingSpace = true
-	return r.Read()
+	var err error
+	var res []string
+
+	if cmdline != "" {
+		r := csv.NewReader(strings.NewReader(cmdline))
+		r.Comma = ' '
+		r.TrimLeadingSpace = true
+		res, err = r.Read()
+	}
+	return res, err
 }
