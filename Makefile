@@ -1,3 +1,4 @@
+export GO111MODULE=on
 COMMANDS := $(subst .go,,$(subst cmd,bin,$(wildcard cmd/*.go)))
 PROTOS := $(subst .proto,.pb.go,$(wildcard lib/server/proto/*.proto))
 .PHONY : test-go test-e2e test
