@@ -46,21 +46,25 @@ func Unconfigure(iface *net.Interface) error {
 		return err
 	}
 
-	if addrs, err := netlink.AddrList(link, netlink.FAMILY_V4); err != nil {
+	addrs, err := netlink.AddrList(link, netlink.FAMILY_V4)
+	if err != nil {
 		return err
-	} else {
-		for _, addr := range addrs {
-			if addr.Label == iface.Name {
-				// Only nuke addrs on the main interface, don't touch ethX:N.
-				netlink.AddrDel(link, &addr)
-			}
+	}
+
+	for _, addr := range addrs {
+		if addr.Label == iface.Name {
+			// Only nuke addrs on the main interface, don't touch ethX:N.
+			netlink.AddrDel(link, &addr)
 		}
 	}
 
-	if route, err := defaultRoute(iface); err != nil {
+	route, err := defaultRoute(iface)
+	if err != nil {
 		return err
-	} else if route != nil {
-		if err := netlink.RouteDel(route); err != nil {
+	}
+	if route != nil {
+		err = netlink.RouteDel(route)
+		if err != nil {
 			return err
 		}
 	}
@@ -73,13 +77,14 @@ func InterfaceAddr(iface *net.Interface) (net.IP, error) {
 		return nil, err
 	}
 
-	if addrs, err := netlink.AddrList(link, netlink.FAMILY_V4); err != nil {
+	addrs, err := netlink.AddrList(link, netlink.FAMILY_V4)
+	if err != nil {
 		return nil, err
-	} else {
-		for _, addr := range addrs {
-			if addr.Label == iface.Name {
-				return addr.IP, nil
-			}
+	}
+
+	for _, addr := range addrs {
+		if addr.Label == iface.Name {
+			return addr.IP, nil
 		}
 	}
 	return nil, fmt.Errorf("no ipv4 addr found on interface")
@@ -92,13 +97,14 @@ func defaultRoute(iface *net.Interface) (*netlink.Route, error) {
 		return nil, err
 	}
 
-	if routes, err := netlink.RouteList(link, netlink.FAMILY_V4); err != nil {
+	routes, err := netlink.RouteList(link, netlink.FAMILY_V4)
+	if err != nil {
 		return nil, err
-	} else {
-		for _, r := range routes {
-			if r.Src == nil && r.Dst == nil && r.Gw != nil {
-				return &r, nil
-			}
+	}
+
+	for _, r := range routes {
+		if r.Src == nil && r.Dst == nil && r.Gw != nil {
+			return &r, nil
 		}
 	}
 	return nil, nil
