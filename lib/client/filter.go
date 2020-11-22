@@ -3,7 +3,7 @@ package client
 import (
 	"context"
 
-	"gitlab.com/adrian_blx/psa-dhcp/lib/libif"
+	"git.sr.ht/~adrian-blx/psa-dhcp/lib/libif"
 )
 
 // filterNetconfig modifies the netconfig to align with the server configuration.

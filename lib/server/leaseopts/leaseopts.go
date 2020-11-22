@@ -5,7 +5,7 @@ import (
 	"net"
 	"time"
 
-	pb "gitlab.com/adrian_blx/psa-dhcp/lib/server/proto"
+	pb "git.sr.ht/~adrian-blx/psa-dhcp/lib/server/proto"
 )
 
 type LeaseOptions struct {

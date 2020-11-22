@@ -3,7 +3,7 @@ package replies
 import (
 	"net"
 
-	"gitlab.com/adrian_blx/psa-dhcp/lib/dhcpmsg"
+	"git.sr.ht/~adrian-blx/psa-dhcp/lib/dhcpmsg"
 )
 
 func AssembleOffer(xid uint32, flags uint16, srcIP, dstIP net.IP, dstMAC net.HardwareAddr, opts []dhcpmsg.DHCPOpt) []byte {

@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.com/adrian_blx/psa-dhcp/lib/libif"
+	"git.sr.ht/~adrian-blx/psa-dhcp/lib/libif"
 )
 
 const (

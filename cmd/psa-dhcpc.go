@@ -12,8 +12,8 @@ import (
 	"os"
 	"time"
 
-	"gitlab.com/adrian_blx/psa-dhcp/lib/client"
-	"gitlab.com/adrian_blx/psa-dhcp/lib/resolvconf"
+	"git.sr.ht/~adrian-blx/psa-dhcp/lib/client"
+	"git.sr.ht/~adrian-blx/psa-dhcp/lib/resolvconf"
 )
 
 var (

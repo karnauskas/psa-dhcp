@@ -8,11 +8,11 @@ import (
 	"net"
 	"time"
 
-	"gitlab.com/adrian_blx/psa-dhcp/lib/arpping"
-	vy "gitlab.com/adrian_blx/psa-dhcp/lib/client/verify"
-	"gitlab.com/adrian_blx/psa-dhcp/lib/dhcpmsg"
-	"gitlab.com/adrian_blx/psa-dhcp/lib/layer"
-	"gitlab.com/adrian_blx/psa-dhcp/lib/rsocks"
+	"git.sr.ht/~adrian-blx/psa-dhcp/lib/arpping"
+	vy "git.sr.ht/~adrian-blx/psa-dhcp/lib/client/verify"
+	"git.sr.ht/~adrian-blx/psa-dhcp/lib/dhcpmsg"
+	"git.sr.ht/~adrian-blx/psa-dhcp/lib/layer"
+	"git.sr.ht/~adrian-blx/psa-dhcp/lib/rsocks"
 )
 
 var (

@@ -5,9 +5,9 @@ import (
 	"context"
 	"net"
 
-	"gitlab.com/adrian_blx/psa-dhcp/lib/arpping"
-	"gitlab.com/adrian_blx/psa-dhcp/lib/rsocks"
-	d "gitlab.com/adrian_blx/psa-dhcp/lib/server/ipdb/duid"
+	"git.sr.ht/~adrian-blx/psa-dhcp/lib/arpping"
+	"git.sr.ht/~adrian-blx/psa-dhcp/lib/rsocks"
+	d "git.sr.ht/~adrian-blx/psa-dhcp/lib/server/ipdb/duid"
 )
 
 // arpVerify returns a function which can be used to arp-ping an IP.

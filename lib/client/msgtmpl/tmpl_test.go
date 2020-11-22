@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"gitlab.com/adrian_blx/psa-dhcp/lib/dhcpmsg"
-	"gitlab.com/adrian_blx/psa-dhcp/lib/layer"
+	"git.sr.ht/~adrian-blx/psa-dhcp/lib/dhcpmsg"
+	"git.sr.ht/~adrian-blx/psa-dhcp/lib/layer"
 )
 
 var (

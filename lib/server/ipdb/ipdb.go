@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.com/adrian_blx/psa-dhcp/lib/server/ipdb/clients"
-	d "gitlab.com/adrian_blx/psa-dhcp/lib/server/ipdb/duid"
-	"gitlab.com/adrian_blx/psa-dhcp/lib/server/ipdb/uip"
+	"git.sr.ht/~adrian-blx/psa-dhcp/lib/server/ipdb/clients"
+	d "git.sr.ht/~adrian-blx/psa-dhcp/lib/server/ipdb/duid"
+	"git.sr.ht/~adrian-blx/psa-dhcp/lib/server/ipdb/uip"
 )
 
 type IPDB struct {

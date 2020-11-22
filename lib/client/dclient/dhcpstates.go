@@ -3,8 +3,8 @@ package dclient
 import (
 	"time"
 
-	"gitlab.com/adrian_blx/psa-dhcp/lib/client/msgtmpl"
-	vy "gitlab.com/adrian_blx/psa-dhcp/lib/client/verify"
+	"git.sr.ht/~adrian-blx/psa-dhcp/lib/client/msgtmpl"
+	vy "git.sr.ht/~adrian-blx/psa-dhcp/lib/client/verify"
 )
 
 // runStateDiscovering broadcasts a DHCPDISCOVER message on the interface.

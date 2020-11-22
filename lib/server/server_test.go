@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"gitlab.com/adrian_blx/psa-dhcp/lib/dhcpmsg"
-	pb "gitlab.com/adrian_blx/psa-dhcp/lib/server/proto"
+	"git.sr.ht/~adrian-blx/psa-dhcp/lib/dhcpmsg"
+	pb "git.sr.ht/~adrian-blx/psa-dhcp/lib/server/proto"
 )
 
 func TestServer(t *testing.T) {

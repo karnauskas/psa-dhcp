@@ -5,9 +5,9 @@ import (
 	"log"
 	"net"
 
-	cb "gitlab.com/adrian_blx/psa-dhcp/lib/client/callback"
-	"gitlab.com/adrian_blx/psa-dhcp/lib/client/dclient"
-	"gitlab.com/adrian_blx/psa-dhcp/lib/ifmon"
+	cb "git.sr.ht/~adrian-blx/psa-dhcp/lib/client/callback"
+	"git.sr.ht/~adrian-blx/psa-dhcp/lib/client/dclient"
+	"git.sr.ht/~adrian-blx/psa-dhcp/lib/ifmon"
 )
 
 // mclient is the 'main' client and is what we return on New.

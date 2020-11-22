@@ -7,11 +7,11 @@ import (
 	"net"
 	"strings"
 
-	"gitlab.com/adrian_blx/psa-dhcp/lib/dhcpmsg"
-	"gitlab.com/adrian_blx/psa-dhcp/lib/libif"
-	"gitlab.com/adrian_blx/psa-dhcp/lib/server/ipdb"
-	lo "gitlab.com/adrian_blx/psa-dhcp/lib/server/leaseopts"
-	pb "gitlab.com/adrian_blx/psa-dhcp/lib/server/proto"
+	"git.sr.ht/~adrian-blx/psa-dhcp/lib/dhcpmsg"
+	"git.sr.ht/~adrian-blx/psa-dhcp/lib/libif"
+	"git.sr.ht/~adrian-blx/psa-dhcp/lib/server/ipdb"
+	lo "git.sr.ht/~adrian-blx/psa-dhcp/lib/server/leaseopts"
+	pb "git.sr.ht/~adrian-blx/psa-dhcp/lib/server/proto"
 )
 
 type server struct {

@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	d "gitlab.com/adrian_blx/psa-dhcp/lib/server/ipdb/duid"
-	"gitlab.com/adrian_blx/psa-dhcp/lib/server/ipdb/uip"
+	d "git.sr.ht/~adrian-blx/psa-dhcp/lib/server/ipdb/duid"
+	"git.sr.ht/~adrian-blx/psa-dhcp/lib/server/ipdb/uip"
 )
 
 var (

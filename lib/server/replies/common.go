@@ -3,8 +3,8 @@ package replies
 import (
 	"net"
 
-	"gitlab.com/adrian_blx/psa-dhcp/lib/dhcpmsg"
-	"gitlab.com/adrian_blx/psa-dhcp/lib/layer"
+	"git.sr.ht/~adrian-blx/psa-dhcp/lib/dhcpmsg"
+	"git.sr.ht/~adrian-blx/psa-dhcp/lib/layer"
 )
 
 func assembleUdp(srcIP, dstIP net.IP, payload []byte) []byte {

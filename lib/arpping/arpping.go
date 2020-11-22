@@ -5,8 +5,8 @@ import (
 	"net"
 	"time"
 
-	"gitlab.com/adrian_blx/psa-dhcp/lib/layer"
-	"gitlab.com/adrian_blx/psa-dhcp/lib/rsocks"
+	"git.sr.ht/~adrian-blx/psa-dhcp/lib/layer"
+	"git.sr.ht/~adrian-blx/psa-dhcp/lib/rsocks"
 )
 
 // Ping sends an arp ping to the given destination. The call returns after a valid reply

@@ -7,10 +7,10 @@ import (
 	"net"
 	"time"
 
-	"gitlab.com/adrian_blx/psa-dhcp/lib/dhcpmsg"
-	d "gitlab.com/adrian_blx/psa-dhcp/lib/server/ipdb/duid"
-	"gitlab.com/adrian_blx/psa-dhcp/lib/server/replies"
-	yl "gitlab.com/adrian_blx/psa-dhcp/lib/server/ylog"
+	"git.sr.ht/~adrian-blx/psa-dhcp/lib/dhcpmsg"
+	d "git.sr.ht/~adrian-blx/psa-dhcp/lib/server/ipdb/duid"
+	"git.sr.ht/~adrian-blx/psa-dhcp/lib/server/replies"
+	yl "git.sr.ht/~adrian-blx/psa-dhcp/lib/server/ylog"
 )
 
 func (sx *server) handleMsg(src, dst net.IP, msg dhcpmsg.Message) {

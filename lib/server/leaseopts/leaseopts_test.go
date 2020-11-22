@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	pb "gitlab.com/adrian_blx/psa-dhcp/lib/server/proto"
+	pb "git.sr.ht/~adrian-blx/psa-dhcp/lib/server/proto"
 )
 
 func TestParseConfig(t *testing.T) {
