@@ -1,9 +1,10 @@
 module git.sr.ht/~adrian-blx/psa-dhcp
 
-go 1.15
+go 1.16
 
 require (
-	github.com/golang/protobuf v1.4.3
+	github.com/golang/protobuf v1.5.2
+	github.com/google/go-cmp v0.5.6
 	github.com/vishvananda/netlink v1.1.0
-	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
+	golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba
 )
