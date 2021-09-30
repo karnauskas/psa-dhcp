@@ -22,6 +22,7 @@ var (
 	script  = flag.String("script", "", "Script to execute on significant changes")
 	route   = flag.Bool("default_route", true, "Configure (default) route")
 	syshook = flag.Bool("syshook", false, "For use in -script: update /etc/resolv.conf")
+	resolvcfg = flag.Bool("resolvconf", false, "Maintain /etc/resolv.conf, can not be used in combination with -script")
 )
 
 func init() {
@@ -44,6 +45,13 @@ func main() {
 		lflags |= log.LstdFlags
 	}
 	l := log.New(os.Stdout, "psa-dhcpc: ", lflags)
+
+	if *resolvcfg {
+		if *script != "" {
+			l.Fatalf("-resolvconf can not be used in combination with -script")
+		}
+		*script = fmt.Sprintf("%s -syshook", os.Args[0])
+	}
 
 	if *syshook {
 		if err := resolvconf.Run(ctx, l); err != nil {
