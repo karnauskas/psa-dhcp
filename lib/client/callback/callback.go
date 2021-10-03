@@ -50,7 +50,11 @@ func Cbhandler(script string, iface *net.Interface, l *log.Logger) func(context.
 		if err != nil {
 			l.Printf("Execution of command '%s' returned error: %v", script, err)
 		}
-		l.Printf("Output of command (if any): %s", string(out))
+		if len(out) == 0 {
+			l.Printf("-> Command exited without any output.")
+		} else {
+			l.Printf("-> Command exited with output %q", string(out))
+		}
 	}
 }
 
