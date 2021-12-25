@@ -17,11 +17,11 @@ import (
 )
 
 var (
-	ifname  = flag.String("ifname", "", "Interface to use")
-	logTime = flag.Bool("log_time", true, "Prefix log messages with timestamp")
-	script  = flag.String("script", "", "Script to execute on significant changes")
-	route   = flag.Bool("default_route", true, "Configure (default) route")
-	syshook = flag.Bool("syshook", false, "For use in -script: update /etc/resolv.conf")
+	ifname    = flag.String("ifname", "", "Interface to use")
+	logTime   = flag.Bool("log_time", true, "Prefix log messages with timestamp")
+	script    = flag.String("script", "", "Script to execute on significant changes")
+	route     = flag.Bool("default_route", true, "Configure (default) route")
+	syshook   = flag.Bool("syshook", false, "For use in -script: update /etc/resolv.conf")
 	resolvcfg = flag.Bool("resolvconf", false, "Maintain /etc/resolv.conf, can not be used in combination with -script")
 )
 
@@ -71,8 +71,8 @@ func main() {
 
 	l.SetPrefix(fmt.Sprintf("psa-dhcpc[%s] ", iface.Name))
 
-	c := client.New(ctx, l, iface, *script, *route)
-	err = c.Run()
+	c := client.New(l, iface, *script, *route)
+	err = c.Run(ctx)
 	if err != nil {
 		l.Fatalf("error: %v\n", err)
 	}

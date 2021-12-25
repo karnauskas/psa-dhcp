@@ -12,7 +12,6 @@ import (
 
 // mclient is the 'main' client and is what we return on New.
 type mclient struct {
-	ctx            context.Context
 	l              *log.Logger
 	iface          *net.Interface
 	script         string
@@ -20,44 +19,49 @@ type mclient struct {
 }
 
 // New returns a new mclient to the caller. Use Run() to launch it.
-func New(ctx context.Context, l *log.Logger, iface *net.Interface, script string, croute bool) *mclient {
-	return &mclient{ctx: ctx, l: l, iface: iface, script: script, configureRoute: croute}
+func New(l *log.Logger, iface *net.Interface, script string, croute bool) *mclient {
+	return &mclient{
+		l:              l,
+		iface:          iface,
+		script:         script,
+		configureRoute: croute,
+	}
 }
 
 // Run runs the main loop.
-func (mx *mclient) Run() error {
+func (mx *mclient) Run(ctx context.Context) error {
 	// This is the context we use for the dclient.
 	// We will cancel it if there are any important netlink changes.
-	dctx, dcancel := context.WithCancel(mx.ctx)
+	dctx, dcancel := context.WithCancel(ctx)
 	defer dcancel()
 
 	// Check for interface changes, this will trigger dcancel.
 	// We use a pointer as the local value will get updated.
-	go mx.monitor(&dcancel)
+	go mx.monitor(ctx, &dcancel)
 
 	dx := dclient.New(dctx, mx.iface, mx.l, mx.filterNetconfig, cb.Cbhandler(mx.script, mx.iface, mx.l))
 	for {
 		dx.Run()
-		if err := mx.ctx.Err(); err != nil {
+		if err := ctx.Err(); err != nil {
 			return err
 		}
-		dctx, dcancel = context.WithCancel(mx.ctx)
+		dctx, dcancel = context.WithCancel(ctx)
 		dx.ResumeClient(dctx)
 	}
 }
 
 // monitor checks the interface for important changes.
-func (mx *mclient) monitor(cancel *context.CancelFunc) {
+func (mx *mclient) monitor(ctx context.Context, cancel *context.CancelFunc) {
 	ev := make(chan bool, 64)
 	defer close(ev)
-	go ifmon.MonitorChanges(mx.ctx, mx.iface, ev)
+	go ifmon.MonitorChanges(ctx, mx.iface, ev)
 	for {
 		select {
 		case <-ev:
 			mx.l.Printf("Interface %s is now 'up'", mx.iface.Name)
 			flushChan(ev)
 			(*cancel)()
-		case <-mx.ctx.Done():
+		case <-ctx.Done():
 			return
 		}
 	}
