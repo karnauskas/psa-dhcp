@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	src = "https://code.wireshark.org/review/gitweb?p=wireshark.git;a=blob_plain;f=manuf"
+	src = "https://raw.githubusercontent.com/wireshark/wireshark/master/manuf"
 )
 
 var (
