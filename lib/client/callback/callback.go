@@ -20,7 +20,7 @@ const (
 )
 
 var (
-	reBadChars = regexp.MustCompile(`[^a-zA-Z0-9\.-]`)
+	reBadChars = regexp.MustCompile(`[^a-zA-Z0-9,\.-]`)
 )
 
 // Cbhandler returns a function which can be called to execute the specified script.
